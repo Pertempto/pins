@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+
+import 'data/data_store.dart';
 
 void main() {
+  DataStore.init();
   runApp(const MyApp());
 }
 
@@ -35,13 +40,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
+  Position? position;
 
   @override
   Widget build(BuildContext context) {
@@ -53,21 +52,25 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
+            Text(position != null ? position.toString() : 'Tap the button to find your location.'),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+        onPressed: _locate,
+        tooltip: 'Pin',
+        child: const Icon(MdiIcons.mapMarker),
+      ),
     );
+  }
+
+  _locate() {
+    DataStore.determinePosition().then((pos) {
+      setState(() {
+        position = pos;
+      });
+    }, onError: (error) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ERROR: $error')));
+    });
   }
 }
