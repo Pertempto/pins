@@ -81,13 +81,25 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
           Expanded(
-            child: ListView(
-              children: pins
-                  .map((p) => ListTile(
-                        title: Text('(${p.latitude.toStringAsFixed(4)}, ${p.longitude.toStringAsFixed(4)})'),
-                      ))
-                  .toList(),
-            ),
+            child: pins.isEmpty
+                ? Center(
+                    child: Text('Press and hold the map to add a pin!', style: Theme.of(context).textTheme.headline6!))
+                : ListView(
+                    children: pins
+                        .map((p) => ListTile(
+                              title: Text('(${p.latitude.toStringAsFixed(4)}, ${p.longitude.toStringAsFixed(4)})'),
+                              trailing: IconButton(
+                                icon: const Icon(MdiIcons.close),
+                                onPressed: () {
+                                  setState(() {
+                                    pins.remove(p);
+                                  });
+                                },
+                              ),
+                              dense: true,
+                            ))
+                        .toList(),
+                  ),
           ),
         ],
       ),
