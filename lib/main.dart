@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:math';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -48,20 +50,46 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   Position? position;
+  List<LatLng> pins = [];
   final Completer<GoogleMapController> _controller = Completer();
 
   @override
   Widget build(BuildContext context) {
+    double height = max(500.0, MediaQuery.of(context).size.height * 0.6);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pins'),
       ),
-      body: GoogleMap(
-        mapType: MapType.hybrid,
-        initialCameraPosition: const CameraPosition(target: LatLng(39.75, -84.20), zoom: 12), // initial: Dayton
-        onMapCreated: (GoogleMapController controller) {
-          _controller.complete(controller);
-        },
+      body: Column(
+        children: [
+          SizedBox(
+            height: height,
+            child: GoogleMap(
+              mapType: MapType.hybrid,
+              // initial: Dayton
+              initialCameraPosition: const CameraPosition(target: LatLng(39.75, -84.20), zoom: 12),
+              zoomControlsEnabled: false,
+              markers: pins.mapIndexed((i, p) => Marker(position: p, markerId: MarkerId(i.toString()))).toSet(),
+              onMapCreated: (GoogleMapController controller) {
+                _controller.complete(controller);
+              },
+              onLongPress: (point) {
+                setState(() {
+                  pins.add(point);
+                });
+              },
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              children: pins
+                  .map((p) => ListTile(
+                        title: Text('(${p.latitude.toStringAsFixed(4)}, ${p.longitude.toStringAsFixed(4)})'),
+                      ))
+                  .toList(),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _locate,
