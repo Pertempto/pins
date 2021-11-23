@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:platform_maps_flutter/platform_maps_flutter.dart';
 
 import 'data/data_store.dart';
 
@@ -48,13 +49,50 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: const Text('Pins'),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(position != null ? position.toString() : 'Tap the button to find your location.'),
+      body: PlatformMap(
+        initialCameraPosition: CameraPosition(
+          target: const LatLng(47.6, 8.8796),
+          zoom: 16.0,
+        ),
+        markers: Set<Marker>.of(
+          [
+            Marker(
+              markerId: MarkerId('marker_1'),
+              position: LatLng(47.6, 8.8796),
+              consumeTapEvents: true,
+              infoWindow: InfoWindow(
+                title: 'PlatformMarker',
+                snippet: "Hi I'm a Platform Marker",
+              ),
+              onTap: () {
+                print("Marker tapped");
+              },
+            ),
           ],
         ),
+        mapType: MapType.satellite,
+        onTap: (location) => print('onTap: $location'),
+        onCameraMove: (cameraUpdate) => print('onCameraMove: $cameraUpdate'),
+        compassEnabled: true,
+        onMapCreated: (controller) {
+          Future.delayed(Duration(seconds: 2)).then(
+                (_) {
+              controller.animateCamera(
+                CameraUpdate.newCameraPosition(
+                  const CameraPosition(
+                    bearing: 270.0,
+                    target: LatLng(51.5160895, -0.1294527),
+                    tilt: 30.0,
+                    zoom: 18,
+                  ),
+                ),
+              );
+              controller
+                  .getVisibleRegion()
+                  .then((bounds) => print("bounds: ${bounds.toString()}"));
+            },
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _locate,
