@@ -4,7 +4,6 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
@@ -49,7 +48,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  Position? position;
   List<LatLng> pins = [];
   final Completer<GoogleMapController> _controller = Completer();
 
@@ -68,8 +66,14 @@ class _MyHomePageState extends State<MyHomePage> {
               mapType: MapType.hybrid,
               // initial: Dayton
               initialCameraPosition: const CameraPosition(target: LatLng(39.75, -84.20), zoom: 12),
+              mapToolbarEnabled: false,
               zoomControlsEnabled: false,
-              markers: pins.mapIndexed((i, p) => Marker(position: p, markerId: MarkerId(i.toString()))).toSet(),
+              markers: pins
+                  .mapIndexed(
+                    (i, p) => Marker(
+                        position: p, markerId: MarkerId(i.toString()), infoWindow: InfoWindow(title: '#${i + 1}')),
+                  )
+                  .toSet(),
               onMapCreated: (GoogleMapController controller) {
                 _controller.complete(controller);
               },
@@ -86,8 +90,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Text('Press and hold the map to add a pin!', style: Theme.of(context).textTheme.headline6!))
                 : ListView(
                     children: pins
-                        .map((p) => ListTile(
-                              title: Text('(${p.latitude.toStringAsFixed(4)}, ${p.longitude.toStringAsFixed(4)})'),
+                        .mapIndexed((i, p) => ListTile(
+                              title: Text(
+                                  '#${i + 1} (${p.latitude.toStringAsFixed(4)}, ${p.longitude.toStringAsFixed(4)})'),
                               trailing: IconButton(
                                 icon: const Icon(MdiIcons.close),
                                 onPressed: () {
@@ -96,6 +101,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   });
                                 },
                               ),
+                              onTap: () => _updateView(p),
                               dense: true,
                             ))
                         .toList(),
@@ -114,19 +120,18 @@ class _MyHomePageState extends State<MyHomePage> {
   _locate() {
     DataStore.determinePosition().then((pos) {
       setState(() {
-        position = pos;
-        _updateView();
+        _updateView(LatLng(pos.latitude, pos.longitude), zoom: 18);
       });
     }, onError: (error) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ERROR: $error')));
     });
   }
 
-  Future<void> _updateView() async {
-    if (position != null) {
+  Future<void> _updateView(LatLng target, {double zoom = 16}) async {
+    if (target != null) {
       final GoogleMapController controller = await _controller.future;
       controller.animateCamera(CameraUpdate.newCameraPosition(
-          CameraPosition(bearing: 0, target: LatLng(position!.latitude, position!.longitude), zoom: 19)));
+          CameraPosition(bearing: 0, target: LatLng(target.latitude, target.longitude), zoom: zoom)));
     }
   }
 }
