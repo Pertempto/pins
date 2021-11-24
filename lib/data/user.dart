@@ -45,6 +45,11 @@ class User {
     return users;
   }
 
+  addCollection(String collectionId) {
+    _collectionIds.add(collectionId);
+    saveData();
+  }
+
   saveData() {
     DataStore.setUserDoc(_userId, dataMap);
   }

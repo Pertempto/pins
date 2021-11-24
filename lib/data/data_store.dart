@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../data/user.dart';
 import '../shared/auth.dart';
+import 'collection.dart';
 import 'data.dart';
 
 class DataStore {
@@ -33,6 +34,10 @@ class DataStore {
       print('DATASTORE - got auth update');
       updateUserConnection(event == null ? '' : event.uid);
       _streamController.add('auth');
+    });
+    _collectionsCollection.snapshots().listen((event) {
+      data.updateCollections(Collection.fromSnapshot(event));
+      _streamController.add('collections');
     });
   }
 
@@ -67,6 +72,10 @@ class DataStore {
 
   static setUserDoc(String userId, Map<String, dynamic> dataMap) {
     FirebaseFirestore.instance.collection('users').doc(userId).set(dataMap);
+  }
+
+  static setCollectionDoc(String collectionId, Map<String, dynamic> dataMap) {
+    FirebaseFirestore.instance.collection('collections').doc(collectionId).set(dataMap);
   }
 
   /// Determine the current position of the device.
