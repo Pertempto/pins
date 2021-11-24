@@ -1,16 +1,13 @@
-import 'dart:async';
-import 'dart:math';
-
-import 'package:collection/collection.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 import 'data/data_store.dart';
+import 'widgets/home.dart';
 
 void main() {
-  DataStore.init();
+  WidgetsFlutterBinding.ensureInitialized();
   if (defaultTargetPlatform == TargetPlatform.android) {
     AndroidGoogleMapsFlutter.useAndroidViewSurface = true;
   }
@@ -35,103 +32,74 @@ class MyApp extends StatelessWidget {
           onSecondary: Colors.white,
         ),
       ),
-      home: const MyHomePage(),
+      home: const Root(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key}) : super(key: key);
+class Root extends StatefulWidget {
+  const Root({Key? key}) : super(key: key);
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _RootState createState() => _RootState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  List<LatLng> pins = [];
-  final Completer<GoogleMapController> _controller = Completer();
+class _RootState extends State<Root> {
+  bool _initialized = false;
+  bool _error = false;
+
+  // Define an async function to initialize FlutterFire
+  void initializeFlutterFire() async {
+    try {
+      await Firebase.initializeApp();
+      await DataStore.init();
+      setState(() {
+        print("INIT DONE");
+        _initialized = true;
+      });
+    } catch (e) {
+      print("ERROR: $e");
+      // Set `_error` state to true if Firebase initialization fails
+      setState(() {
+        _error = true;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    initializeFlutterFire();
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
-    double height = max(500.0, MediaQuery.of(context).size.height * 0.6);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pins'),
-      ),
-      body: Column(
-        children: [
-          SizedBox(
-            height: height,
-            child: GoogleMap(
-              mapType: MapType.hybrid,
-              // initial: Dayton
-              initialCameraPosition: const CameraPosition(target: LatLng(39.75, -84.20), zoom: 12),
-              mapToolbarEnabled: false,
-              zoomControlsEnabled: false,
-              markers: pins
-                  .mapIndexed(
-                    (i, p) => Marker(
-                        position: p, markerId: MarkerId(i.toString()), infoWindow: InfoWindow(title: '#${i + 1}')),
-                  )
-                  .toSet(),
-              onMapCreated: (GoogleMapController controller) {
-                _controller.complete(controller);
-              },
-              onLongPress: (point) {
-                setState(() {
-                  pins.add(point);
-                });
-              },
-            ),
-          ),
-          Expanded(
-            child: pins.isEmpty
-                ? Center(
-                    child: Text('Press and hold the map to add a pin!', style: Theme.of(context).textTheme.headline6!))
-                : ListView(
-                    children: pins
-                        .mapIndexed((i, p) => ListTile(
-                              title: Text(
-                                  '#${i + 1} (${p.latitude.toStringAsFixed(4)}, ${p.longitude.toStringAsFixed(4)})'),
-                              trailing: IconButton(
-                                icon: const Icon(MdiIcons.close),
-                                onPressed: () {
-                                  setState(() {
-                                    pins.remove(p);
-                                  });
-                                },
-                              ),
-                              onTap: () => _updateView(p),
-                              dense: true,
-                            ))
-                        .toList(),
-                  ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _locate,
-        tooltip: 'Pin',
-        child: const Icon(MdiIcons.mapMarker),
-      ),
-    );
-  }
-
-  _locate() {
-    DataStore.determinePosition().then((pos) {
-      setState(() {
-        _updateView(LatLng(pos.latitude, pos.longitude), zoom: 18);
-      });
-    }, onError: (error) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ERROR: $error')));
-    });
-  }
-
-  Future<void> _updateView(LatLng target, {double zoom = 16}) async {
-    if (target != null) {
-      final GoogleMapController controller = await _controller.future;
-      controller.animateCamera(CameraUpdate.newCameraPosition(
-          CameraPosition(bearing: 0, target: LatLng(target.latitude, target.longitude), zoom: zoom)));
+    Widget? widget;
+    if (_error) {
+      widget = const Text("Error!");
+    } else if (!_initialized) {
+      widget = const CircularProgressIndicator();
     }
+    if (widget != null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text("Verse Typer"),
+        ),
+        body: Center(
+          child: widget,
+        ),
+      );
+    }
+    return DataStore.dataWrap(() {
+      print('MAIN UPDATE');
+      if (DataStore.isLoading) {
+        return Scaffold(
+          appBar: AppBar(title: const Text("Loading...")),
+          body: const Center(child: CircularProgressIndicator()),
+        );
+      } else {
+        return Home(DataStore.data.isSignedIn);
+      }
+    });
   }
 }

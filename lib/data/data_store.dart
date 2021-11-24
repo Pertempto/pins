@@ -1,8 +1,73 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../data/user.dart';
+import '../shared/auth.dart';
+import 'data.dart';
 
 class DataStore {
-  static init() {}
+  static bool _isLoading = false;
+  static late Auth _auth;
+  static CollectionReference _collectionsCollection = FirebaseFirestore.instance.collection('collections');
+  static StreamSubscription? _userStreamSubscription;
+  static final StreamController _streamController = StreamController.broadcast();
+  static late Stream _dataStream;
+  static Data data = Data.empty();
+
+  static Auth get auth => _auth;
+
+  static bool get isLoading => _isLoading;
+
+  static init() {
+    _auth = Auth();
+    _dataStream = _streamController.stream;
+    if (_auth.user != null) {
+      print('already signed in...');
+      updateUserConnection(_auth.user!.uid);
+      _streamController.add('auth');
+    }
+    _auth.stream.listen((event) {
+      print('DATASTORE - got auth update');
+      updateUserConnection(event == null ? '' : event.uid);
+      _streamController.add('auth');
+    });
+  }
+
+  static StreamBuilder dataWrap(Widget Function() callback) {
+    return StreamBuilder(
+      stream: _dataStream,
+      builder: (context, event) {
+        print('user now: ${data.currentUser}');
+        return callback();
+      },
+    );
+  }
+
+  static updateUserConnection(String userId) {
+    print('USER ID: $userId');
+    if (userId.isEmpty) {
+      if (_userStreamSubscription != null) {
+        _userStreamSubscription!.cancel();
+      }
+      data.updateCurrentUser(null);
+    } else {
+      _userStreamSubscription = FirebaseFirestore.instance.collection('users').doc(userId).snapshots().listen((doc) {
+        print('DATASTORE - got user update');
+        data.updateCurrentUser(User.fromDocument(doc));
+        _streamController.add('users');
+      }, onError: (error) {
+        print('user stream error: $error');
+      });
+    }
+    _isLoading = false;
+  }
+
+  static setUserDoc(String userId, Map<String, dynamic> dataMap) {
+    FirebaseFirestore.instance.collection('users').doc(userId).set(dataMap);
+  }
 
   /// Determine the current position of the device.
   ///
@@ -36,8 +101,7 @@ class DataStore {
 
     if (permission == LocationPermission.deniedForever) {
       // Permissions are denied forever, handle appropriately.
-      return Future.error(
-          'Location permissions are permanently denied, we cannot request permissions.');
+      return Future.error('Location permissions are permanently denied, we cannot request permissions.');
     }
 
     // When we reach here, permissions are granted and we can
