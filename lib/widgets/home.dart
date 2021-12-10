@@ -7,7 +7,6 @@ import 'package:flutter/widgets.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:pins/data/collection.dart';
-import 'package:pins/data/pin.dart';
 import 'package:strings/strings.dart';
 
 import '../data/data_store.dart';
@@ -139,49 +138,47 @@ class _HomeState extends State<Home> {
     if (_selectedCollectionId == '') {
       _selectedCollectionId = DataStore.data.currentUser!.collectionIds.last;
     }
+    Widget content;
     if (_selectedCollection!.pins.isEmpty) {
-      return Center(child: Text('Press and hold the map to add a pin!', style: Theme.of(context).textTheme.headline6!));
+      content = Container(
+        padding: const EdgeInsets.all(16),
+        child: Text('Press and hold the map to add a pin!', style: Theme.of(context).textTheme.headline6!),
+      );
     } else {
-      return Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: Row(
-              children: [
-                Text(_selectedCollection!.name, style: Theme.of(context).textTheme.headline5!),
-                const Spacer(),
-                OutlinedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('This feature is not implemented yet. Check back soon!')));
-                    },
-                    label: const Text('Select Collection'),
-                    icon: const Icon(MdiIcons.playlistStar)),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              children: _selectedCollection!.pins
-                  .mapIndexed((i, p) => ListTile(
-                        title: Text(p.title),
-                        subtitle: Text(p.note),
-                        trailing: IconButton(
-                          icon: const Icon(MdiIcons.close),
-                          onPressed: () {
-                            setState(() {
-                              _selectedCollection!.removePin(p);
-                            });
-                          },
-                        ),
-                        onTap: () => _updateView(p.position),
-                      ))
-                  .toList(),
-            ),
-          ),
-        ],
+      content = Container(
+        child: ListView(
+          children: _selectedCollection!.pins
+              .mapIndexed((i, p) => ListTile(
+                    title: Text(p.title),
+                    subtitle: Text(p.note),
+                    trailing: IconButton(
+                      icon: const Icon(MdiIcons.close),
+                      onPressed: () => setState(() => _selectedCollection!.removePin(p)),
+                    ),
+                    onTap: () => _updateView(p.position),
+                  ))
+              .toList(),
+        ),
       );
     }
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: Row(
+            children: [
+              Text(_selectedCollection!.name, style: Theme.of(context).textTheme.headline5!),
+              const Spacer(),
+              OutlinedButton.icon(
+                  onPressed: _selectCollectionDialog,
+                  label: const Text('Select Collection'),
+                  icon: const Icon(MdiIcons.playlistStar)),
+            ],
+          ),
+        ),
+        content,
+      ],
+    );
   }
 
   _signUp() {
@@ -233,7 +230,54 @@ class _HomeState extends State<Home> {
                 String collectionId = Collection.generateId();
                 DataStore.data.currentUser!.addCollection(collectionId);
                 Collection.newCollection(collectionId, name, DataStore.data.currentUser!.userId);
+                setState(() {
+                  _selectedCollectionId = collectionId;
+                });
               },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  _selectCollectionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Select Collection'),
+          contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: DataStore.data.collections.values
+                .where((collection) => collection.userIds.contains(DataStore.data.currentUser!.userId))
+                .map<Widget>((collection) => GestureDetector(
+                      child: Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              Text(collection.name, style: Theme.of(context).textTheme.headline6),
+                              const Spacer(),
+                              const Icon(MdiIcons.playlistPlay),
+                            ],
+                          ),
+                        ),
+                      ),
+                      onTap: () {
+                        setState(() => _selectedCollectionId = collection.collectionId);
+                        Navigator.pop(context);
+                      },
+                    ))
+                .toList(),
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: Navigator.of(context).pop,
             ),
           ],
         );
