@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'data_store.dart';
 import 'pin.dart';
@@ -9,6 +10,7 @@ class Collection {
   late String _collectionId;
   late String _name;
   late List<Pin> _pins;
+  late int _pinCounter;
   late List<String> _userIds;
 
   String get collectionId => _collectionId;
@@ -23,12 +25,14 @@ class Collection {
     return {
       'name': _name,
       'pins': _pins.map((p) => p.dataMap).toList(),
+      'pinCounter': _pinCounter,
       'userIds': _userIds,
     };
   }
 
   Collection.newCollection(this._collectionId, this._name, String userId)
       : _pins = [],
+        _pinCounter = 0,
         _userIds = [userId] {
     saveData();
   }
@@ -42,6 +46,7 @@ class Collection {
     for (Map<String, dynamic> pinData in data["pins"]) {
       _pins.add(Pin.fromMap(pinData));
     }
+    _pinCounter = data['pinCounter'];
     _userIds = List.from(data['userIds']);
   }
 
@@ -56,9 +61,20 @@ class Collection {
     return collections;
   }
 
-  addPin(Pin pin) {
-    if (!pins.map((p) => p.title == pin.title).any((b) => b)) {
-      _pins.add(pin);
+  bool hasPinTitle(String title) {
+    return pins.map((p) => p.title == title).any((b) => b);
+  }
+
+  createPin(LatLng position) {
+    String title = '#${_pinCounter + 1}';
+    String note = '(${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)})';
+    _pins.add(Pin(title, note, position));
+    _pinCounter++;
+    saveData();
+  }
+
+  removePin(Pin pin) {
+    if (_pins.remove(pin)) {
       saveData();
     }
   }

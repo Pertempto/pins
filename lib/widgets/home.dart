@@ -84,8 +84,7 @@ class _HomeState extends State<Home> {
               onLongPress: (point) {
                 setState(() {
                   if (_canAddPins) {
-                    print('ADD PIN');
-                    _selectedCollection!.addPin(Pin('#${_selectedCollection!.pins.length + 1}', '', point));
+                    _selectedCollection!.createPin(point);
                   }
                 });
               },
@@ -166,14 +165,12 @@ class _HomeState extends State<Home> {
               children: _selectedCollection!.pins
                   .mapIndexed((i, p) => ListTile(
                         title: Text(p.title),
-                        subtitle: Text(p.note +
-                            ' (${p.position.latitude.toStringAsFixed(4)}, ${p.position.longitude.toStringAsFixed(4)})'),
+                        subtitle: Text(p.note),
                         trailing: IconButton(
                           icon: const Icon(MdiIcons.close),
                           onPressed: () {
                             setState(() {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                                  content: Text('This feature is not implemented yet. Check back soon!')));
+                              _selectedCollection!.removePin(p);
                             });
                           },
                         ),
