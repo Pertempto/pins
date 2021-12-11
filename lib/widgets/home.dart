@@ -59,7 +59,7 @@ class _HomeState extends State<Home> {
       ),
       body: Column(
         children: [
-          Expanded(child: _actionSection()),
+          Expanded(child: SingleChildScrollView(child: _actionSection())),
           SizedBox(
             height: height,
             child: GoogleMap(
@@ -118,7 +118,8 @@ class _HomeState extends State<Home> {
 
   Widget _actionSection() {
     if (!widget.isSignedIn) {
-      return Center(
+      return Padding(
+        padding: const EdgeInsets.all(32),
         // the scroll view allows it to handle changing size gracefully
         child: SingleChildScrollView(
           child: Column(
@@ -145,7 +146,8 @@ class _HomeState extends State<Home> {
         child: Text('Press and hold the map to add a pin!', style: Theme.of(context).textTheme.headline6!),
       );
     } else {
-      content = Container(
+      content = SizedBox(
+        height: 300,
         child: ListView(
           children: _selectedCollection!.pins
               .mapIndexed((i, p) => ListTile(
