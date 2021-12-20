@@ -1,101 +1,114 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:pins/data/collection.dart';
 import 'package:strings/strings.dart';
 
+import '../data/collection.dart';
 import '../data/data_store.dart';
-import 'sign_in.dart';
+import '../data/pin.dart';
 
 class Home extends StatefulWidget {
-  final bool isSignedIn;
-
-  const Home(this.isSignedIn, {Key? key}) : super(key: key);
+  const Home({Key? key}) : super(key: key);
 
   @override
   State<Home> createState() => _HomeState();
 }
 
 class _HomeState extends State<Home> {
-  final Completer<GoogleMapController> _controller = Completer();
+  GoogleMapController? _mapController;
+  LatLng? _position;
 
-  bool get _canAddPins => widget.isSignedIn && DataStore.data.currentUser!.collectionIds.isNotEmpty;
-  String _selectedCollectionId = '';
+  bool get _canAddPins => DataStore.data.currentUser!.collectionIds.isNotEmpty;
+  String _selectedCollectionId = DataStore.data.currentUser!.collectionIds.first;
+  Pin? _selectedPin;
 
   Collection? get _selectedCollection =>
       _selectedCollectionId.isNotEmpty ? DataStore.data.collections[_selectedCollectionId] : null;
 
   @override
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    double height = max(500.0, MediaQuery.of(context).size.height * 0.5);
+    print('collection id: $_selectedCollectionId');
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pins'),
+        title: Text(_selectedCollection!.name),
         actions: [
-          if (widget.isSignedIn)
-            IconButton(
-              icon: const Icon(MdiIcons.playlistPlus),
-              onPressed: () {
-                _createCollectionDialog();
-              },
-              tooltip: 'Create Collection',
-            ),
-          if (widget.isSignedIn)
-            IconButton(
-              icon: const Icon(MdiIcons.exitRun),
-              onPressed: () {
-                setState(() {
-                  DataStore.auth.signOut();
-                });
-              },
-              tooltip: 'Sign Out',
-            ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(child: SingleChildScrollView(child: _actionSection())),
-          SizedBox(
-            height: height,
-            child: GoogleMap(
-              mapType: MapType.hybrid,
-              // initial: Dayton
-              initialCameraPosition: const CameraPosition(target: LatLng(39.75, -84.20), zoom: 12),
-              mapToolbarEnabled: false,
-              zoomControlsEnabled: false,
-              markers: (_selectedCollection?.pins
-                      .mapIndexed(
-                        (i, p) => Marker(
-                            position: p.position,
-                            markerId: MarkerId(i.toString()),
-                            infoWindow: InfoWindow(title: p.title, snippet: p.note)),
-                      )
-                      .toSet()) ??
-                  <Marker>{},
-              onMapCreated: (GoogleMapController controller) {
-                _controller.complete(controller);
-              },
-              onLongPress: (point) {
-                setState(() {
-                  if (_canAddPins) {
-                    _selectedCollection!.createPin(point);
-                  }
-                });
-              },
-            ),
+          IconButton(
+            icon: const Icon(MdiIcons.playlistEdit),
+            onPressed: () {},
+            tooltip: 'View Collection',
+          ),
+          IconButton(
+            icon: const Icon(MdiIcons.cog),
+            onPressed: () {},
+            tooltip: 'Settings',
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _locate,
-        tooltip: 'Find Me',
-        child: const Icon(MdiIcons.crosshairsGps),
+      body: Stack(
+        children: [
+          GoogleMap(
+            mapType: MapType.hybrid,
+            // initial: Dayton
+            initialCameraPosition: const CameraPosition(target: LatLng(39.75, -84.20), zoom: 12),
+            mapToolbarEnabled: false,
+            zoomControlsEnabled: false,
+            circles: _position == null
+                ? {}
+                : {
+                    Circle(
+                        circleId: const CircleId('position'),
+                        center: _position!,
+                        radius: 5,
+                        strokeWidth: 3,
+                        strokeColor: Colors.red)
+                  },
+            markers: (_selectedCollection?.pins
+                    .mapIndexed(
+                      (i, p) => Marker(
+                        position: p.position,
+                        markerId: MarkerId(i.toString()),
+                        onTap: () {
+                          setState(() {
+                            _selectedPin = p;
+                          });
+                        },
+                      ),
+                    )
+                    .toSet()) ??
+                <Marker>{},
+            onMapCreated: (GoogleMapController controller) {
+              setState(() {
+                _mapController = controller;
+              });
+            },
+            onLongPress: (point) {
+              setState(() {
+                if (_canAddPins) {
+                  _selectedCollection!.createPin(point);
+                }
+              });
+            },
+          ),
+          _pinView(),
+        ],
       ),
+      floatingActionButton: _mapController == null
+          ? null
+          : FloatingActionButton(
+              onPressed: _locate,
+              tooltip: 'Find Me',
+              child: const Icon(MdiIcons.crosshairsGps),
+            ),
       resizeToAvoidBottomInset: true,
     );
   }
@@ -103,7 +116,8 @@ class _HomeState extends State<Home> {
   _locate() {
     DataStore.determinePosition().then((pos) {
       setState(() {
-        _updateView(LatLng(pos.latitude, pos.longitude), zoom: 18);
+        _position = LatLng(pos.latitude, pos.longitude);
+        _updateView(_position!, zoom: 18);
       });
     }, onError: (error) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ERROR: $error')));
@@ -111,84 +125,8 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> _updateView(LatLng target, {double zoom = 16}) async {
-    final GoogleMapController controller = await _controller.future;
-    controller.animateCamera(CameraUpdate.newCameraPosition(
+    _mapController?.animateCamera(CameraUpdate.newCameraPosition(
         CameraPosition(bearing: 0, target: LatLng(target.latitude, target.longitude), zoom: zoom)));
-  }
-
-  Widget _actionSection() {
-    if (!widget.isSignedIn) {
-      return Padding(
-        padding: const EdgeInsets.all(32),
-        // the scroll view allows it to handle changing size gracefully
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Sign in to save pins.'),
-              ElevatedButton.icon(
-                  icon: const Icon(MdiIcons.accountPlus), label: const Text('Sign Up'), onPressed: _signUp),
-              ElevatedButton.icon(icon: const Icon(MdiIcons.account), label: const Text('Sign In'), onPressed: _signIn),
-            ],
-          ),
-        ),
-      );
-    } else if (DataStore.data.currentUser!.collectionIds.isEmpty) {
-      return Center(child: Text('Create a collection to start.', style: Theme.of(context).textTheme.headline6!));
-    }
-    if (_selectedCollectionId == '') {
-      _selectedCollectionId = DataStore.data.currentUser!.collectionIds.last;
-    }
-    Widget content;
-    if (_selectedCollection!.pins.isEmpty) {
-      content = Container(
-        padding: const EdgeInsets.all(16),
-        child: Text('Press and hold the map to add a pin!', style: Theme.of(context).textTheme.headline6!),
-      );
-    } else {
-      content = SizedBox(
-        height: 300,
-        child: ListView(
-          children: _selectedCollection!.pins
-              .mapIndexed((i, p) => ListTile(
-                    title: Text(p.title),
-                    subtitle: Text(p.note),
-                    trailing: IconButton(
-                      icon: const Icon(MdiIcons.close),
-                      onPressed: () => setState(() => _selectedCollection!.removePin(p)),
-                    ),
-                    onTap: () => _updateView(p.position),
-                  ))
-              .toList(),
-        ),
-      );
-    }
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: Row(
-            children: [
-              Text(_selectedCollection!.name, style: Theme.of(context).textTheme.headline5!),
-              const Spacer(),
-              OutlinedButton.icon(
-                  onPressed: _selectCollectionDialog,
-                  label: const Text('Select Collection'),
-                  icon: const Icon(MdiIcons.playlistStar)),
-            ],
-          ),
-        ),
-        content,
-      ],
-    );
-  }
-
-  _signUp() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const SignInWidget(isSignUp: true)));
-  }
-
-  _signIn() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => const SignInWidget(isSignUp: false)));
   }
 
   _createCollectionDialog() {
@@ -284,6 +222,50 @@ class _HomeState extends State<Home> {
           ],
         );
       },
+    );
+  }
+
+  Widget _pinView() {
+    TextTheme textTheme = Theme.of(context).textTheme;
+    Widget content;
+    if (_selectedPin == null) {
+      content = Text('Press and hold the map to add a pin!', style: textTheme.headline6!);
+    } else {
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(_selectedPin!.title, style: textTheme.headline6!),
+              const SizedBox(width: 16),
+              Text(_selectedPin!.note, style: textTheme.subtitle1!),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(MdiIcons.close),
+                visualDensity: VisualDensity.compact,
+                onPressed: () => setState(() => _selectedPin = null),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.green.shade100, Colors.green.shade100],
+        ),
+        borderRadius: const BorderRadius.all(Radius.circular(12)),
+      ),
+      width: double.infinity,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        child: content,
+      ),
     );
   }
 }
