@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:pins/widgets/sign_in.dart';
 
 import 'data/data_store.dart';
 import 'widgets/home.dart';
@@ -32,10 +33,9 @@ class MyApp extends StatelessWidget {
           onSecondary: Colors.white,
         ),
         cardTheme: CardTheme(
-          elevation: 0,
+          elevation: 8,
           shape: RoundedRectangleBorder(
-            side: BorderSide(width: 1, color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       ),
@@ -90,7 +90,7 @@ class _RootState extends State<Root> {
     if (widget != null) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text("Verse Typer"),
+          title: const Text("Pins"),
         ),
         body: Center(
           child: widget,
@@ -98,14 +98,16 @@ class _RootState extends State<Root> {
       );
     }
     return DataStore.dataWrap(() {
-      print('MAIN UPDATE');
-      if (DataStore.isLoading) {
+      print('MAIN UPDATE ${DataStore.data.isSignedIn}');
+      if (DataStore.data.isLoading) {
         return Scaffold(
           appBar: AppBar(title: const Text("Loading...")),
           body: const Center(child: CircularProgressIndicator()),
         );
+      } else if (DataStore.data.isSignedIn) {
+        return const Home();
       } else {
-        return Home(DataStore.data.isSignedIn);
+        return const SignInWidget(isSignUp: true);
       }
     });
   }

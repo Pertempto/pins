@@ -10,7 +10,6 @@ import 'collection.dart';
 import 'data.dart';
 
 class DataStore {
-  static bool _isLoading = false;
   static late Auth _auth;
   static CollectionReference _collectionsCollection = FirebaseFirestore.instance.collection('collections');
   static StreamSubscription? _userStreamSubscription;
@@ -20,7 +19,6 @@ class DataStore {
 
   static Auth get auth => _auth;
 
-  static bool get isLoading => _isLoading;
 
   static init() {
     _auth = Auth();
@@ -67,7 +65,6 @@ class DataStore {
         print('user stream error: $error');
       });
     }
-    _isLoading = false;
   }
 
   static setUserDoc(String userId, Map<String, dynamic> dataMap) {

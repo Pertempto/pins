@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'collection.dart';
 import 'data_store.dart';
 
 class User {
@@ -21,6 +22,9 @@ class User {
   }
 
   User.newUser(this._userId, this._name) : _collectionIds = [] {
+    String collectionId = Collection.generateId();
+    _collectionIds.add(collectionId);
+    Collection.newCollection(collectionId, 'My Pins', _userId);
     saveData();
   }
 

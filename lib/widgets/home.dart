@@ -37,6 +37,7 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
+    print(DataStore.data.currentUser!.collectionIds);
     print('collection id: $_selectedCollectionId');
     return Scaffold(
       appBar: AppBar(
@@ -229,43 +230,46 @@ class _HomeState extends State<Home> {
     TextTheme textTheme = Theme.of(context).textTheme;
     Widget content;
     if (_selectedPin == null) {
-      content = Text('Press and hold the map to add a pin!', style: textTheme.headline6!);
+      content = Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text('Press and hold the map to add a pin!', style: textTheme.headline6!),
+      );
     } else {
-      content = Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(_selectedPin!.title, style: textTheme.headline6!),
-              const SizedBox(width: 16),
-              Text(_selectedPin!.note, style: textTheme.subtitle1!),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(MdiIcons.close),
-                visualDensity: VisualDensity.compact,
-                onPressed: () => setState(() => _selectedPin = null),
+      content = Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(_selectedPin!.title, style: textTheme.headline6!),
+                const SizedBox(width: 16),
+                Text(_selectedPin!.note, style: textTheme.subtitle1!),
+                const Spacer(),
+              ],
+            ),
+            ButtonBar(alignment: MainAxisAlignment.start, children: [
+              OutlinedButton.icon(
+                onPressed: () {},
+                icon: const Icon(MdiIcons.formatListBulleted),
+                label: const Text('Select'),
               ),
-            ],
-          ),
-        ],
+              OutlinedButton.icon(
+                onPressed: () {},
+                icon: const Icon(MdiIcons.pencil),
+                label: const Text('Edit'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () {},
+                icon: const Icon(MdiIcons.delete),
+                label: const Text('Delete'),
+              ),
+            ])
+          ],
+        ),
       );
     }
-    return Container(
-      margin: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.green.shade100, Colors.green.shade100],
-        ),
-        borderRadius: const BorderRadius.all(Radius.circular(12)),
-      ),
-      width: double.infinity,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        child: content,
-      ),
-    );
+    return SizedBox(width: double.infinity, child: Card(margin: const EdgeInsets.all(16), child: content));
   }
 }
