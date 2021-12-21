@@ -10,6 +10,7 @@ import 'package:strings/strings.dart';
 import '../data/collection.dart';
 import '../data/data_store.dart';
 import '../data/pin.dart';
+import 'settings.dart';
 
 class Home extends StatefulWidget {
   const Home({Key? key}) : super(key: key);
@@ -50,7 +51,7 @@ class _HomeState extends State<Home> {
           ),
           IconButton(
             icon: const Icon(MdiIcons.cog),
-            onPressed: () {},
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const Settings())),
             tooltip: 'Settings',
           ),
         ],

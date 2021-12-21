@@ -225,11 +225,9 @@ class _SignInWidgetState extends State<SignInWidget> {
             print('userId: $userId');
             user.User.newUser(userId, _username);
             print('created user!!');
-            Navigator.of(context).pop();
           }
         } else {
           userId = await DataStore.auth.signIn(_email, _password);
-          Navigator.of(context).pop();
         }
       } on FirebaseAuthException catch (e) {
         print('error message: ${e.code}, ${e.message}');
