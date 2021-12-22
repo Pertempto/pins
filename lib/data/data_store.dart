@@ -13,6 +13,7 @@ class DataStore {
   static late Auth _auth;
   static CollectionReference _collectionsCollection = FirebaseFirestore.instance.collection('collections');
   static StreamSubscription? _userStreamSubscription;
+  static StreamSubscription? _collectionStreamSubscription;
   static final StreamController _streamController = StreamController.broadcast();
   static late Stream _dataStream;
   static Data data = Data.empty();
@@ -33,10 +34,6 @@ class DataStore {
       updateUserConnection(event == null ? '' : event.uid);
       _streamController.add('auth');
     });
-    _collectionsCollection.snapshots().listen((event) {
-      data.updateCollections(Collection.fromSnapshot(event));
-      _streamController.add('collections');
-    });
   }
 
   static StreamBuilder dataWrap(Widget Function() callback) {
@@ -52,9 +49,8 @@ class DataStore {
   static updateUserConnection(String userId) {
     print('USER ID: $userId');
     if (userId.isEmpty) {
-      if (_userStreamSubscription != null) {
-        _userStreamSubscription!.cancel();
-      }
+      _userStreamSubscription?.cancel();
+      _collectionStreamSubscription?.cancel();
       data.updateCurrentUser(null);
     } else {
       _userStreamSubscription = FirebaseFirestore.instance.collection('users').doc(userId).snapshots().listen((doc) {
@@ -63,6 +59,11 @@ class DataStore {
         _streamController.add('users');
       }, onError: (error) {
         print('user stream error: $error');
+      });
+      _collectionStreamSubscription = _collectionsCollection.snapshots().listen((event) {
+        print('got collections update');
+        data.updateCollections(Collection.fromSnapshot(event));
+        _streamController.add('collections');
       });
     }
   }

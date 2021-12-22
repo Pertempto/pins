@@ -13,7 +13,13 @@ class Data {
 
   Map<String, Collection> get collections => _collections;
 
-  bool get isLoading => _isLoadingUser | _isLoadingCollections;
+  bool get isLoading {
+    if (isSignedIn) {
+      return _isLoadingUser | _isLoadingCollections;
+    } else {
+      return _isLoadingUser;
+    }
+  }
 
   Data.empty();
 
