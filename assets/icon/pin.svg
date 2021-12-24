@@ -2,8 +2,8 @@
 
 <svg viewBox="0 0 40 72" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
    <g>
-      <polygon style="fill:#0D47A1;" points="0, 20 0, 72 30, 20"/>
-      <ellipse style="fill:#0D47A1;" cx="19" cy="20" rx="19" ry="19" />
+      <polygon style="fill:#AD1457;" points="0, 20 0, 72 30, 20"/>
+      <ellipse style="fill:#AD1457;" cx="19" cy="20" rx="19" ry="19" />
       <ellipse style="fill:#4CAF50;" cx="19" cy="20" rx="10" ry="10" />
    </g>
 </svg>

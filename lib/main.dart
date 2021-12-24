@@ -21,14 +21,15 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    Colors.pink[800]!;
     return MaterialApp(
       title: 'Pins',
       theme: ThemeData(
         colorScheme: ColorScheme.light(
           primary: Colors.green[700]!,
           primaryVariant: Colors.green[800]!,
-          secondary: Colors.blue[700]!,
-          secondaryVariant: Colors.blue[800]!,
+          secondary: Colors.pink[700]!,
+          secondaryVariant: Colors.pink[800]!,
           onPrimary: Colors.white,
           onSecondary: Colors.white,
         ),
