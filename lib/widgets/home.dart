@@ -78,11 +78,12 @@ class _HomeState extends State<Home> {
       appBar: AppBar(
         title: Text(_selectedCollection!.name),
         actions: [
-          IconButton(
-            icon: const Icon(MdiIcons.playlistEdit),
-            onPressed: () {},
-            tooltip: 'View Collection',
-          ),
+          // TODO: add collection screen
+          // IconButton(
+          //   icon: const Icon(MdiIcons.playlistEdit),
+          //   onPressed: () {},
+          //   tooltip: 'View Collection',
+          // ),
           IconButton(
             icon: const Icon(MdiIcons.cog),
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const Settings())),
@@ -262,86 +263,80 @@ class _HomeState extends State<Home> {
 
   Widget _pinView() {
     TextTheme textTheme = Theme.of(context).textTheme;
-    Widget content;
+    String title, note, subText;
+    Widget buttonBar;
     if (_selectedPinIndex == -1) {
-      String note = '(${_position.latitude.toStringAsFixed(4)}, ${_position.longitude.toStringAsFixed(4)})';
-      content = Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text('Here', style: textTheme.headline6!),
-                const SizedBox(width: 16),
-                Text(note, style: textTheme.subtitle1!),
-                const Spacer(),
-              ],
-            ),
-            Text('Press and hold the map to add a pin.', style: textTheme.subtitle1!),
-            ButtonBar(alignment: MainAxisAlignment.start, children: [
-              OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(MdiIcons.formatListBulleted),
-                label: const Text('Select Pin'),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => _addPin(_position),
-                icon: const Icon(MdiIcons.mapMarkerPlus),
-                label: const Text('Add Pin Here'),
-              ),
-            ])
-          ],
+      title = 'Here';
+      note = '(${_position.latitude.toStringAsFixed(4)}, ${_position.longitude.toStringAsFixed(4)})';
+      subText = 'Press and hold the map to add a pin.';
+      buttonBar = ButtonBar(alignment: MainAxisAlignment.start, children: [
+        // TODO: make this work
+        // OutlinedButton.icon(
+        //   onPressed: () {},
+        //   icon: const Icon(MdiIcons.formatListBulleted),
+        //   label: const Text('Select Pin'),
+        // ),
+        OutlinedButton.icon(
+          onPressed: () => _addPin(_position),
+          icon: const Icon(MdiIcons.mapMarkerPlus),
+          label: const Text('Add Pin Here'),
         ),
-      );
+      ]);
     } else {
       Pin pin = _selectedCollection!.pins[_selectedPinIndex];
+      title = pin.title;
+      note = pin.note;
       double distanceMeters = Geolocator.distanceBetween(
           _position.latitude, _position.longitude, pin.position.latitude, pin.position.longitude);
       double distanceFeet = distanceMeters * 3.280839895;
-      String distanceText = 'Distance from here: ${distanceFeet.toStringAsFixed(1)} ft.';
-      content = Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(pin.title, style: textTheme.headline6!),
-                const SizedBox(width: 16),
-                Text(pin.note, style: textTheme.subtitle1!),
-                const Spacer(),
-              ],
-            ),
-            Text(distanceText, style: textTheme.subtitle1!),
-            ButtonBar(alignment: MainAxisAlignment.start, children: [
-              OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(MdiIcons.formatListBulleted),
-                label: const Text('Select Pin'),
-              ),
-              OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(MdiIcons.pencil),
-                label: const Text('Edit'),
-              ),
-              OutlinedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _selectedCollection!.removePin(_selectedPinIndex);
-                    _selectedPinIndex = -1;
-                  });
-                },
-                icon: const Icon(MdiIcons.delete),
-                label: const Text('Delete'),
-              ),
-            ])
-          ],
+      subText = 'Distance from here: ${distanceFeet.toStringAsFixed(1)} ft.';
+      buttonBar = ButtonBar(alignment: MainAxisAlignment.start, children: [
+        // TODO: make this work
+        // OutlinedButton.icon(
+        //   onPressed: () {},
+        //   icon: const Icon(MdiIcons.formatListBulleted),
+        //   label: const Text('Select Pin'),
+        // ),
+        // TODO: make this work
+        // OutlinedButton.icon(
+        //   onPressed: () {},
+        //   icon: const Icon(MdiIcons.pencil),
+        //   label: const Text('Edit'),
+        // ),
+        OutlinedButton.icon(
+          onPressed: () {
+            setState(() {
+              _selectedCollection!.removePin(_selectedPinIndex);
+              _selectedPinIndex = -1;
+            });
+          },
+          icon: const Icon(MdiIcons.delete),
+          label: const Text('Delete'),
         ),
-      );
+      ]);
     }
-    return SizedBox(width: double.infinity, child: Card(margin: const EdgeInsets.all(16), child: content));
+    return SizedBox(
+        width: double.infinity,
+        child: Card(
+            margin: const EdgeInsets.all(16),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(title, style: textTheme.headline6!),
+                      const SizedBox(width: 16),
+                      Text(note, style: textTheme.subtitle1!),
+                      const Spacer(),
+                    ],
+                  ),
+                  Text(subText, style: textTheme.subtitle1!),
+                  buttonBar
+                ],
+              ),
+            )));
   }
 }
