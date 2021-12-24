@@ -75,8 +75,9 @@ class Collection {
     return pin;
   }
 
-  removePin(Pin pin) {
-    if (_pins.remove(pin)) {
+  removePin(int index) {
+    if (index >= 0 && index < _pins.length) {
+      _pins.removeAt(index);
       saveData();
     }
   }
@@ -92,7 +93,6 @@ class Collection {
     for (int i = 0; i < 6; i++) {
       id += options[rand.nextInt(options.length)];
     }
-    print('ID: $id');
     return id;
   }
 }

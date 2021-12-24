@@ -11,7 +11,7 @@ import 'data.dart';
 
 class DataStore {
   static late Auth _auth;
-  static CollectionReference _collectionsCollection = FirebaseFirestore.instance.collection('collections');
+  static final CollectionReference _collectionsCollection = FirebaseFirestore.instance.collection('collections');
   static StreamSubscription? _userStreamSubscription;
   static StreamSubscription? _collectionStreamSubscription;
   static final StreamController _streamController = StreamController.broadcast();
