@@ -2,10 +2,10 @@
 
 <svg viewBox="0 0 1024 1024" version="1.1" id="svg5" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
    <g>
-      <rect style="fill:#388E3C;" width="1024" height="1024" x="0" y="0" />
+      <rect style="fill:#4CAF50;" width="1024" height="1024" x="0" y="0" />
 
-      <polygon style="fill:#5D4037;" points="362, 412 362, 762 562, 412"/>
-      <ellipse style="fill:#5D4037;" cx="512" cy="412" rx="150" ry="150" />
-      <ellipse style="fill:#388E3C;" cx="512" cy="412" rx="70" ry="70" />
+      <polygon style="fill:#0D47A1;" points="362, 412 362, 762 562, 412"/>
+      <ellipse style="fill:#0D47A1;" cx="512" cy="412" rx="150" ry="150" />
+      <ellipse style="fill:#4CAF50;" cx="512" cy="412" rx="70" ry="70" />
    </g>
 </svg>

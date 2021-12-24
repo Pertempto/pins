@@ -21,7 +21,9 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   GoogleMapController? _mapController;
-  LatLng? _position;
+  LatLng _position = const LatLng(39.75, -84.20);
+  BitmapDescriptor locationIcon = BitmapDescriptor.defaultMarker;
+  BitmapDescriptor pinIcon = BitmapDescriptor.defaultMarker;
 
   bool get _canAddPins => DataStore.data.currentUser!.collectionIds.isNotEmpty;
   String _selectedCollectionId = DataStore.data.currentUser!.collectionIds.first;
@@ -29,6 +31,18 @@ class _HomeState extends State<Home> {
 
   Collection? get _selectedCollection =>
       _selectedCollectionId.isNotEmpty ? DataStore.data.collections[_selectedCollectionId] : null;
+
+  @override
+  void initState() {
+    super.initState();
+    BitmapDescriptor.fromAssetImage(const ImageConfiguration(size: Size(72, 72)), 'assets/icon/location.png')
+        .then((bitmap) {
+      locationIcon = bitmap;
+    });
+    BitmapDescriptor.fromAssetImage(const ImageConfiguration(size: Size(40, 72)), 'assets/icon/pin.png').then((bitmap) {
+      pinIcon = bitmap;
+    });
+  }
 
   @override
   void dispose() {
@@ -40,6 +54,23 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     print(DataStore.data.currentUser!.collectionIds);
     print('collection id: $_selectedCollectionId');
+    Set<Marker> markers = (_selectedCollection?.pins
+            .mapIndexed((i, p) => Marker(
+                position: p.position,
+                markerId: MarkerId(i.toString()),
+                icon: pinIcon,
+                anchor: const Offset(0, 1),
+                onTap: () => setState(() => _selectedPin = p),
+                zIndex: i.toDouble()))
+            .toSet()) ??
+        <Marker>{};
+    markers.add(Marker(
+        position: _position,
+        markerId: const MarkerId('position'),
+        icon: locationIcon,
+        anchor: const Offset(0.5, 0.5),
+        onTap: () => setState(() => _selectedPin = null),
+        zIndex: markers.length.toDouble()));
     return Scaffold(
       appBar: AppBar(
         title: Text(_selectedCollection!.name),
@@ -61,33 +92,10 @@ class _HomeState extends State<Home> {
           GoogleMap(
             mapType: MapType.hybrid,
             // initial: Dayton
-            initialCameraPosition: const CameraPosition(target: LatLng(39.75, -84.20), zoom: 12),
+            initialCameraPosition: CameraPosition(target: _position, zoom: 12),
             mapToolbarEnabled: false,
             zoomControlsEnabled: false,
-            circles: _position == null
-                ? {}
-                : {
-                    Circle(
-                        circleId: const CircleId('position'),
-                        center: _position!,
-                        radius: 5,
-                        strokeWidth: 3,
-                        strokeColor: Colors.red)
-                  },
-            markers: (_selectedCollection?.pins
-                    .mapIndexed(
-                      (i, p) => Marker(
-                        position: p.position,
-                        markerId: MarkerId(i.toString()),
-                        onTap: () {
-                          setState(() {
-                            _selectedPin = p;
-                          });
-                        },
-                      ),
-                    )
-                    .toSet()) ??
-                <Marker>{},
+            markers: markers,
             onMapCreated: (GoogleMapController controller) {
               setState(() {
                 _mapController = controller;
@@ -96,7 +104,7 @@ class _HomeState extends State<Home> {
             onLongPress: (point) {
               setState(() {
                 if (_canAddPins) {
-                  _selectedCollection!.createPin(point);
+                  _selectedPin = _selectedCollection!.createPin(point);
                 }
               });
             },
@@ -110,6 +118,7 @@ class _HomeState extends State<Home> {
               onPressed: _locate,
               tooltip: 'Find Me',
               child: const Icon(MdiIcons.crosshairsGps),
+              heroTag: null,
             ),
       resizeToAvoidBottomInset: true,
     );
@@ -119,7 +128,8 @@ class _HomeState extends State<Home> {
     DataStore.determinePosition().then((pos) {
       setState(() {
         _position = LatLng(pos.latitude, pos.longitude);
-        _updateView(_position!, zoom: 18);
+        _selectedPin = null;
+        _updateView(_position, zoom: 18);
       });
     }, onError: (error) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ERROR: $error')));
@@ -231,9 +241,41 @@ class _HomeState extends State<Home> {
     TextTheme textTheme = Theme.of(context).textTheme;
     Widget content;
     if (_selectedPin == null) {
+      String note = '(${_position.latitude.toStringAsFixed(4)}, ${_position.longitude.toStringAsFixed(4)})';
       content = Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text('Press and hold the map to add a pin!', style: textTheme.headline6!),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text('Here', style: textTheme.headline6!),
+                const SizedBox(width: 16),
+                Text(note, style: textTheme.subtitle1!),
+                const Spacer(),
+              ],
+            ),
+            ButtonBar(alignment: MainAxisAlignment.start, children: [
+              OutlinedButton.icon(
+                onPressed: () {},
+                icon: const Icon(MdiIcons.formatListBulleted),
+                label: const Text('Select Pin'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    if (_canAddPins) {
+                      _selectedPin = _selectedCollection!.createPin(_position);
+                    }
+                  });
+                },
+                icon: const Icon(MdiIcons.mapMarkerPlus),
+                label: const Text('Add Pin Here'),
+              ),
+            ])
+          ],
+        ),
       );
     } else {
       content = Padding(
@@ -254,7 +296,7 @@ class _HomeState extends State<Home> {
               OutlinedButton.icon(
                 onPressed: () {},
                 icon: const Icon(MdiIcons.formatListBulleted),
-                label: const Text('Select'),
+                label: const Text('Select Pin'),
               ),
               OutlinedButton.icon(
                 onPressed: () {},

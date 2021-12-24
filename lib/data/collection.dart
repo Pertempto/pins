@@ -65,12 +65,14 @@ class Collection {
     return pins.map((p) => p.title == title).any((b) => b);
   }
 
-  createPin(LatLng position) {
+  Pin createPin(LatLng position) {
     String title = '#${_pinCounter + 1}';
     String note = '(${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)})';
-    _pins.add(Pin(title, note, position));
+    Pin pin = Pin(title, note, position);
+    _pins.add(pin);
     _pinCounter++;
     saveData();
+    return pin;
   }
 
   removePin(Pin pin) {

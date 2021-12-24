@@ -27,8 +27,8 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.light(
           primary: Colors.green[700]!,
           primaryVariant: Colors.green[800]!,
-          secondary: Colors.brown[700]!,
-          secondaryVariant: Colors.brown[800]!,
+          secondary: Colors.blue[700]!,
+          secondaryVariant: Colors.blue[800]!,
           onPrimary: Colors.white,
           onSecondary: Colors.white,
         ),
