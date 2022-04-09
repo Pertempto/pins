@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'collection.dart';
-import 'data_store.dart';
 
 class User {
   late String _userId;
@@ -63,6 +62,6 @@ class User {
   }
 
   saveData() {
-    DataStore.setUserDoc(_userId, dataMap);
+    FirebaseFirestore.instance.collection('users').doc(_userId).set(dataMap);
   }
 }

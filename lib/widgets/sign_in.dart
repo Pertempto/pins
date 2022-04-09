@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../data/data_store.dart';
 import '../data/user.dart' as user;
 
 class SignInWidget extends StatefulWidget {
@@ -221,13 +220,13 @@ class _SignInWidgetState extends State<SignInWidget> {
             });
           } else {
             print('trying to create new user...');
-            userId = await DataStore.auth.signUp(_email, _password);
+            userId = await _signUp(_email, _password);
             print('userId: $userId');
             user.User.newUser(userId, _username);
             print('created user!!');
           }
         } else {
-          userId = await DataStore.auth.signIn(_email, _password);
+          userId = await _signIn(_email, _password);
         }
       } on FirebaseAuthException catch (e) {
         print('error message: ${e.code}, ${e.message}');
@@ -251,6 +250,23 @@ class _SignInWidgetState extends State<SignInWidget> {
     } else {
       _isLoading = false;
     }
+  }
+
+  Future<String> _signUp(String email, String password) async {
+    UserCredential result =
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: password);
+    if (result.user == null) {
+      return "";
+    }
+    return result.user!.uid;
+  }
+
+  Future<String> _signIn(String email, String password) async {
+    UserCredential result = await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: password);
+    if (result.user == null) {
+      return "";
+    }
+    return result.user!.uid;
   }
 
   bool _validateAndSave() {

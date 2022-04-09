@@ -1,228 +1,217 @@
 import 'dart:async';
 
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:strings/strings.dart';
 
 import '../data/collection.dart';
-import '../data/data_store.dart';
+import '../data/location_controller.dart';
 import '../data/pin.dart';
-import '../providers.dart';
-import 'settings.dart';
 
-class Home extends ConsumerStatefulWidget {
+class Home extends HookConsumerWidget {
   const Home({Key? key}) : super(key: key);
 
   @override
-  _HomeState createState() => _HomeState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locationState = ref.watch(locationNotifierProvider);
+    final locationNotifier = ref.watch(locationNotifierProvider.notifier);
 
-class _HomeState extends ConsumerState<Home> {
-  GoogleMapController? _mapController;
-  bool _positionEnabled = false;
-  LatLng _position = const LatLng(39.75, -84.20);
-  StreamSubscription<Position>? _positionStream;
-  BitmapDescriptor locationIcon = BitmapDescriptor.defaultMarker;
-  BitmapDescriptor pinIcon = BitmapDescriptor.defaultMarker;
+    useEffect(() {
+      Future.microtask(() async {
+        ref.watch(locationNotifierProvider.notifier).getCurrentLocation();
+      });
+      return;
+    }, const []);
 
-  bool get _canAddPins => DataStore.data.currentUser!.collectionIds.isNotEmpty;
-
-  String get _selectedCollectionId => DataStore.data.currentUser!.collectionIds.first;
-  int _selectedPinIndex = -1;
-
-  Collection? get _selectedCollection =>
-      _selectedCollectionId.isNotEmpty ? DataStore.data.collections[_selectedCollectionId] : null;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkPosition();
-    BitmapDescriptor.fromAssetImage(const ImageConfiguration(size: Size(72, 72)), 'assets/icon/location.png')
-        .then((bitmap) {
-      locationIcon = bitmap;
-    });
-    BitmapDescriptor.fromAssetImage(const ImageConfiguration(size: Size(40, 72)), 'assets/icon/pin.png').then((bitmap) {
-      pinIcon = bitmap;
-    });
-  }
-
-  @override
-  void dispose() {
-    _positionStream?.cancel();
-    _mapController?.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final collections = ref.watch(userCollectionsProvider);
-    Set<Marker> markers = (_selectedCollection?.pins
-            .mapIndexed((i, p) => Marker(
-                position: p.position,
-                markerId: MarkerId(i.toString()),
-                icon: pinIcon,
-                anchor: const Offset(0, 1),
-                onTap: () => setState(() => _selectedPinIndex = i),
-                zIndex: i.toDouble()))
-            .toSet()) ??
-        <Marker>{};
-    markers.add(Marker(
-        position: _position,
-        markerId: const MarkerId('position'),
-        icon: locationIcon,
-        anchor: const Offset(0.5, 0.5),
-        onTap: () => setState(() => _selectedPinIndex = -1),
-        zIndex: markers.length.toDouble()));
     return Scaffold(
-      appBar: AppBar(
-        title: Text(collections.isEmpty ? 'Loading...' : collections.first.name),
-        actions: [
-          // TODO: add collection screen
-          IconButton(
-            icon: const Icon(MdiIcons.playlistEdit),
-            onPressed: () {},
-            tooltip: 'View Collection',
-          ),
-          IconButton(
-            icon: const Icon(MdiIcons.cog),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const Settings())),
-            tooltip: 'Settings',
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          GoogleMap(
-            mapType: MapType.hybrid,
-            initialCameraPosition: CameraPosition(target: _position),
-            mapToolbarEnabled: false,
-            zoomControlsEnabled: false,
-            markers: markers,
-            onMapCreated: (GoogleMapController controller) => setState(() => _mapController = controller),
-            onLongPress: _addPin,
-          ),
-          _pinView(),
-        ],
-      ),
-      floatingActionButton: _mapController == null || !_positionEnabled
-          ? null
-          : FloatingActionButton(
-              onPressed: _locate,
-              tooltip: 'Find Me',
-              child: const Icon(MdiIcons.crosshairsGps),
-              heroTag: null,
-            ),
-      resizeToAvoidBottomInset: true,
-    );
+        body: locationState.isBusy
+            ? const Center(child: CircularProgressIndicator())
+            : GoogleMap(
+                mapType: MapType.normal,
+                myLocationButtonEnabled: true,
+                myLocationEnabled: true,
+                zoomControlsEnabled: false,
+                initialCameraPosition: CameraPosition(
+                  target: locationState.currentLocation,
+                  zoom: 14.4746,
+                ),
+                markers: locationState.markers,
+                onMapCreated: locationNotifier.onMapCreated,
+              ),
+        floatingActionButton: FloatingActionButton(
+            onPressed: () async {
+              locationNotifier.getNewLocation();
+            },
+            child: const Icon(Icons.location_searching)));
   }
 
-  _checkPosition() {
-    DataStore.determinePosition().then((pos) {
-      _positionStream = Geolocator.getPositionStream().listen((Position position) {
-        setState(() {
-          _position = LatLng(position.latitude, position.longitude);
-        });
-      });
-      setState(() {
-        _position = LatLng(pos.latitude, pos.longitude);
-        _positionEnabled = true;
-        _updateView(_position, zoom: 18);
-      });
-    }, onError: (error) {
-      setState(() {
-        _positionEnabled = false;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ERROR: $error')));
-      });
-    });
-  }
+// @override
+// Widget build(BuildContext context, WidgetRef ref) {
+//   final Completer<GoogleMapController> completer = Completer();
+//   final collections = ref.watch(userCollectionsProvider);
+//   // final position = ref.watch(geolocatorContStaNotiPro);
+//   final locationIcon = useFuture(
+//       BitmapDescriptor.fromAssetImage(const ImageConfiguration(size: Size(72, 72)), 'assets/icon/location.png'),
+//       initialData: BitmapDescriptor.defaultMarker);
+//   final pinIcon = useFuture(
+//       BitmapDescriptor.fromAssetImage(const ImageConfiguration(size: Size(40, 72)), 'assets/icon/pin.png'),
+//       initialData: BitmapDescriptor.defaultMarker);
+//   final mapController = useFuture(completer.future);
+//   int selectedPinIndex = -1;
+//
+//   var selectedCollection = collections.first;
+//   Set<Marker> markers = (selectedCollection.pins
+//           .mapIndexed((i, p) => Marker(
+//               position: p.position,
+//               markerId: MarkerId(i.toString()),
+//               icon: pinIcon.requireData,
+//               anchor: const Offset(0, 1),
+//               // onTap: () => setState(() => _selectedPinIndex = i),
+//               zIndex: i.toDouble()))
+//           .toSet()) ??
+//       <Marker>{};
+//   markers.add(Marker(
+//       position: position.value!,
+//       markerId: const MarkerId('position'),
+//       icon: locationIcon.requireData,
+//       anchor: const Offset(0.5, 0.5),
+//       // onTap: () => setState(() => _selectedPinIndex = -1),
+//       zIndex: markers.length.toDouble()));
+//   return Scaffold(
+//     appBar: AppBar(
+//       title: Text(collections.isEmpty ? 'Loading...' : collections.first.name),
+//       actions: [
+//         // TODO: add collection screen
+//         IconButton(
+//           icon: const Icon(MdiIcons.playlistEdit),
+//           onPressed: () {},
+//           tooltip: 'View Collection',
+//         ),
+//         IconButton(
+//           icon: const Icon(MdiIcons.cog),
+//           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const Settings())),
+//           tooltip: 'Settings',
+//         ),
+//       ],
+//     ),
+//     body: Stack(
+//       children: [
+//         GoogleMap(
+//           mapType: MapType.hybrid,
+//           initialCameraPosition: CameraPosition(target: position.value!),
+//           mapToolbarEnabled: false,
+//           zoomControlsEnabled: false,
+//           markers: markers,
+//           onMapCreated: (GoogleMapController controller) => completer.complete(controller),
+//           onLongPress: _addPin,
+//         ),
+//         _pinView(context, selectedPinIndex, selectedCollection, position.value!),
+//       ],
+//     ),
+//     floatingActionButton: !mapController.hasData
+//         ? null
+//         : FloatingActionButton(
+//             onPressed: () {
+//               selectedPinIndex = -1;
+//               _updateView(completer, position.value!);
+//             },
+//             tooltip: 'Find Me',
+//             child: const Icon(MdiIcons.crosshairsGps),
+//             heroTag: null,
+//           ),
+//     resizeToAvoidBottomInset: true,
+//   );
+// }
 
   _locate() {
-    setState(() {
-      _selectedPinIndex = -1;
-      _updateView(_position);
-    });
+    // setState(() {
+    //   _selectedPinIndex = -1;
+    //   _updateView(_position);
+    // });
   }
 
-  Future<void> _updateView(LatLng target, {double? zoom}) async {
+  Future<void> _updateView(Completer<GoogleMapController> completer, LatLng target, {double? zoom}) async {
+    print('UPDATE VIEW');
     CameraPosition cameraPosition;
+    final GoogleMapController controller = await completer.future;
     if (zoom != null) {
       cameraPosition = CameraPosition(bearing: 0, target: target, zoom: zoom);
-      _mapController?.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
+      controller.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
     } else {
       cameraPosition = CameraPosition(bearing: 0, target: LatLng(target.latitude, target.longitude));
-      _mapController?.animateCamera(CameraUpdate.newLatLng(target));
+      controller.animateCamera(CameraUpdate.newLatLng(target));
     }
   }
 
   _addPin(LatLng point) {
-    setState(() {
-      if (_canAddPins) {
-        _selectedCollection!.createPin(point);
-        _selectedPinIndex = _selectedCollection!.pins.length - 1;
-      }
-    });
+    // setState(() {
+    //   if (_canAddPins) {
+    //     _selectedCollection!.createPin(point);
+    //     _selectedPinIndex = _selectedCollection!.pins.length - 1;
+    //   }
+    // });
   }
 
-  _createCollectionDialog() {
-    TextEditingController textFieldController = TextEditingController(text: 'My Pins');
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Create Collection'),
-          contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
-          content: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const Padding(
-                padding: EdgeInsets.only(right: 12),
-                child: Text('Name:'),
-              ),
-              Expanded(
-                child: TextField(
-                  autofocus: true,
-                  controller: textFieldController,
-                ),
-              ),
-            ],
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Submit'),
-              onPressed: () {
-                if (textFieldController.value.text.trim().isEmpty) {
-                  return;
-                }
-                String name = textFieldController.value.text.split(RegExp(r'\s+')).map((w) => capitalize(w)).join(' ');
-                Navigator.pop(context);
-                String collectionId = Collection.generateId();
-                DataStore.data.currentUser!.addCollection(collectionId);
-                Collection.newCollection(collectionId, name, DataStore.data.currentUser!.userId);
-                setState(() {});
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
+//
+// _createCollectionDialog() {
+//   TextEditingController textFieldController = TextEditingController(text: 'My Pins');
+//   showDialog(
+//     context: context,
+//     builder: (context) {
+//       return AlertDialog(
+//         title: const Text('Create Collection'),
+//         contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+//         content: Row(
+//           mainAxisSize: MainAxisSize.min,
+//           children: <Widget>[
+//             const Padding(
+//               padding: EdgeInsets.only(right: 12),
+//               child: Text('Name:'),
+//             ),
+//             Expanded(
+//               child: TextField(
+//                 autofocus: true,
+//                 controller: textFieldController,
+//               ),
+//             ),
+//           ],
+//         ),
+//         actions: <Widget>[
+//           TextButton(
+//             child: const Text('Cancel'),
+//             onPressed: () {
+//               Navigator.of(context).pop();
+//             },
+//           ),
+//           TextButton(
+//             child: const Text('Submit'),
+//             onPressed: () {
+//               if (textFieldController.value.text.trim().isEmpty) {
+//                 return;
+//               }
+//               String name = textFieldController.value.text.split(RegExp(r'\s+')).map((w) => capitalize(w)).join(' ');
+//               Navigator.pop(context);
+//               String collectionId = Collection.generateId();
+//               DataStore.data.currentUser!.addCollection(collectionId);
+//               Collection.newCollection(collectionId, name, DataStore.data.currentUser!.userId);
+//               setState(() {});
+//             },
+//           ),
+//         ],
+//       );
+//     },
+//   );
+// }
 
-  Widget _pinView() {
+  Widget _pinView(BuildContext context, int selectedPinIndex, Collection selectedCollection, LatLng _position) {
     TextTheme textTheme = Theme.of(context).textTheme;
     String title, note, subText;
     Widget buttonBar;
-    if (_selectedPinIndex == -1) {
+    if (selectedPinIndex == -1) {
       title = 'Here';
       note = '(${_position.latitude.toStringAsFixed(4)}, ${_position.longitude.toStringAsFixed(4)})';
       subText = 'Press and hold the map to add a pin.';
@@ -240,7 +229,7 @@ class _HomeState extends ConsumerState<Home> {
         ),
       ]);
     } else {
-      Pin pin = _selectedCollection!.pins[_selectedPinIndex];
+      Pin pin = selectedCollection.pins[selectedPinIndex];
       title = pin.title;
       note = pin.note;
       double distanceMeters = Geolocator.distanceBetween(
@@ -262,10 +251,7 @@ class _HomeState extends ConsumerState<Home> {
         // ),
         OutlinedButton.icon(
           onPressed: () {
-            setState(() {
-              _selectedCollection!.removePin(_selectedPinIndex);
-              _selectedPinIndex = -1;
-            });
+            selectedCollection.removePin(selectedPinIndex);
           },
           icon: const Icon(MdiIcons.delete),
           label: const Text('Delete'),

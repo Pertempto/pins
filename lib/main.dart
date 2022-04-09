@@ -1,11 +1,12 @@
+import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:pins/providers.dart';
 import 'package:pins/widgets/sign_in.dart';
 
-import 'data/data_store.dart';
 import 'firebase_options.dart';
 import 'widgets/home.dart';
 
@@ -48,14 +49,14 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class Root extends StatefulWidget {
+class Root extends ConsumerStatefulWidget {
   const Root({Key? key}) : super(key: key);
 
   @override
   _RootState createState() => _RootState();
 }
 
-class _RootState extends State<Root> {
+class _RootState extends ConsumerState<Root> {
   bool _initialized = false;
   bool _error = false;
 
@@ -65,7 +66,6 @@ class _RootState extends State<Root> {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
-      await DataStore.init();
       setState(() {
         print("INIT DONE");
         _initialized = true;
@@ -103,18 +103,26 @@ class _RootState extends State<Root> {
         ),
       );
     }
-    return DataStore.dataWrap(() {
-      print('MAIN UPDATE ${DataStore.data.isSignedIn}');
-      if (DataStore.data.isLoading) {
-        return Scaffold(
-          appBar: AppBar(title: const Text("Loading...")),
-          body: const Center(child: CircularProgressIndicator()),
-        );
-      } else if (DataStore.data.isSignedIn) {
-        return const Home();
-      } else {
-        return const SignInWidget(isSignUp: true);
-      }
-    });
+    final AsyncValue<auth.User?> user = ref.watch(authUserProvider);
+
+    return user.when(
+      data: (user) {
+        if (user == null) {
+          print('NO USER');
+          return const SignInWidget(isSignUp: true);
+        } else {
+          print('User: $user');
+          return const Home();
+        }
+      },
+      loading: () => Scaffold(
+        appBar: AppBar(title: const Text('Loading...')),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stack) => Scaffold(
+        appBar: AppBar(title: const Text('Error')),
+        body: Center(child: Text(error.toString())),
+      ),
+    );
   }
 }

@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import 'data_store.dart';
 import 'pin.dart';
 
 class Collection {
@@ -83,7 +82,7 @@ class Collection {
   }
 
   saveData() {
-    DataStore.setCollectionDoc(_collectionId, dataMap);
+    FirebaseFirestore.instance.collection('collections').doc(_collectionId).set(dataMap);
   }
 
   static String generateId() {

@@ -1,10 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:pins/providers.dart';
-
-import '../data/data_store.dart';
 
 class Settings extends ConsumerStatefulWidget {
   const Settings({Key? key}) : super(key: key);
@@ -18,6 +17,7 @@ class _SettingsState extends ConsumerState<Settings> {
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(userProvider);
     final userCollections = ref.watch(userCollectionsProvider);
     List<Widget> children = [
       Text('Collections', style: textTheme.headlineMedium),
@@ -34,7 +34,7 @@ class _SettingsState extends ConsumerState<Settings> {
               ),
             ),
             onTap: () {
-              DataStore.data.currentUser!.selectCollection(collection.collectionId);
+              ref.read(userProvider).value!.selectCollection(collection.collectionId);
               Navigator.of(context).pop();
             },
           ))
@@ -42,9 +42,7 @@ class _SettingsState extends ConsumerState<Settings> {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings'), actions: [
         IconButton(
-          onPressed: () {
-            DataStore.auth.signOut().then((value) => Navigator.of(context).pop());
-          },
+          onPressed: () => FirebaseAuth.instance.signOut().then((value) => Navigator.of(context).pop()),
           icon: const Icon(MdiIcons.exitRun),
           tooltip: 'Sign Out',
         ),
