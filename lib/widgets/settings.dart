@@ -12,8 +12,37 @@ class Settings extends StatefulWidget {
 }
 
 class _SettingsState extends State<Settings> {
+  late TextTheme textTheme = Theme.of(context).textTheme;
+
   @override
   Widget build(BuildContext context) {
+    List<Widget> children = [
+      Text('Collections', style: textTheme.headlineMedium),
+      ...DataStore.data.currentUser!.collectionIds
+          .map((id) => DataStore.data.collections[id])
+          .where((collection) => collection != null && collection.userIds.contains(DataStore.data.currentUser!.userId))
+          .map<Widget>(
+            (collection) => InkWell(
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                child: Row(
+                  children: [
+                    Text(collection!.name + ' ' + collection.collectionId, style: textTheme.titleLarge),
+                    const Spacer(),
+                    const Icon(MdiIcons.chevronRight),
+                  ],
+                ),
+              ),
+              onTap: () {
+                setState(() {
+                  DataStore.data.currentUser!.selectCollection(collection.collectionId);
+                });
+                Navigator.of(context).pop();
+              },
+            ),
+          ),
+    ];
     return Scaffold(
       appBar: AppBar(title: const Text('Settings'), actions: [
         IconButton(
@@ -24,6 +53,15 @@ class _SettingsState extends State<Settings> {
           tooltip: 'Sign Out',
         ),
       ]),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: children,
+          ),
+        ),
+      ),
     );
   }
 }

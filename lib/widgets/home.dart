@@ -29,7 +29,8 @@ class _HomeState extends State<Home> {
   BitmapDescriptor pinIcon = BitmapDescriptor.defaultMarker;
 
   bool get _canAddPins => DataStore.data.currentUser!.collectionIds.isNotEmpty;
-  String _selectedCollectionId = DataStore.data.currentUser!.collectionIds.first;
+
+  String get _selectedCollectionId => DataStore.data.currentUser!.collectionIds.first;
   int _selectedPinIndex = -1;
 
   Collection? get _selectedCollection =>
@@ -205,54 +206,8 @@ class _HomeState extends State<Home> {
                 String collectionId = Collection.generateId();
                 DataStore.data.currentUser!.addCollection(collectionId);
                 Collection.newCollection(collectionId, name, DataStore.data.currentUser!.userId);
-                setState(() {
-                  _selectedCollectionId = collectionId;
-                });
+                setState(() {});
               },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  _selectCollectionDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Select Collection'),
-          contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-          content: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: DataStore.data.collections.values
-                .where((collection) => collection.userIds.contains(DataStore.data.currentUser!.userId))
-                .map<Widget>((collection) => GestureDetector(
-                      child: Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
-                            children: [
-                              Text(collection.name, style: Theme.of(context).textTheme.headline6),
-                              const Spacer(),
-                              const Icon(MdiIcons.playlistPlay),
-                            ],
-                          ),
-                        ),
-                      ),
-                      onTap: () {
-                        setState(() => _selectedCollectionId = collection.collectionId);
-                        Navigator.pop(context);
-                      },
-                    ))
-                .toList(),
-          ),
-          actions: [
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: Navigator.of(context).pop,
             ),
           ],
         );

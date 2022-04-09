@@ -26,6 +26,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Pins',
       theme: ThemeData(
+        useMaterial3: true,
         colorScheme: ColorScheme.light(
           primary: Colors.green[700]!,
           primaryVariant: Colors.green[800]!,

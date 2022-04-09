@@ -50,8 +50,16 @@ class User {
   }
 
   addCollection(String collectionId) {
-    _collectionIds.add(collectionId);
+    _collectionIds.insert(0, collectionId);
     saveData();
+  }
+
+  selectCollection(String collectionId) {
+    if (_collectionIds.remove(collectionId)) {
+      _collectionIds.insert(0, collectionId);
+      print(_collectionIds);
+      saveData();
+    }
   }
 
   saveData() {
