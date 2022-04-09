@@ -79,11 +79,11 @@ class _HomeState extends State<Home> {
         title: Text(_selectedCollection!.name),
         actions: [
           // TODO: add collection screen
-          // IconButton(
-          //   icon: const Icon(MdiIcons.playlistEdit),
-          //   onPressed: () {},
-          //   tooltip: 'View Collection',
-          // ),
+          IconButton(
+            icon: const Icon(MdiIcons.playlistEdit),
+            onPressed: () {},
+            tooltip: 'View Collection',
+          ),
           IconButton(
             icon: const Icon(MdiIcons.cog),
             onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const Settings())),
@@ -119,9 +119,8 @@ class _HomeState extends State<Home> {
 
   _checkPosition() {
     DataStore.determinePosition().then((pos) {
-      _positionStream = Geolocator.getPositionStream(distanceFilter: 2).listen((Position position) {
+      _positionStream = Geolocator.getPositionStream().listen((Position position) {
         setState(() {
-          print(position);
           _position = LatLng(position.latitude, position.longitude);
         });
       });

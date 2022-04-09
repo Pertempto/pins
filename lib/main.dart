@@ -5,6 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pins/widgets/sign_in.dart';
 
 import 'data/data_store.dart';
+import 'firebase_options.dart';
 import 'widgets/home.dart';
 
 void main() {
@@ -59,7 +60,9 @@ class _RootState extends State<Root> {
   // Define an async function to initialize FlutterFire
   void initializeFlutterFire() async {
     try {
-      await Firebase.initializeApp();
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
       await DataStore.init();
       setState(() {
         print("INIT DONE");
