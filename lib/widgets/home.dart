@@ -5,22 +5,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:strings/strings.dart';
 
 import '../data/collection.dart';
 import '../data/data_store.dart';
 import '../data/pin.dart';
+import '../providers.dart';
 import 'settings.dart';
 
-class Home extends StatefulWidget {
+class Home extends ConsumerStatefulWidget {
   const Home({Key? key}) : super(key: key);
 
   @override
-  State<Home> createState() => _HomeState();
+  _HomeState createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> {
+class _HomeState extends ConsumerState<Home> {
   GoogleMapController? _mapController;
   bool _positionEnabled = false;
   LatLng _position = const LatLng(39.75, -84.20);
@@ -58,6 +60,7 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
+    final collections = ref.watch(userCollectionsProvider);
     Set<Marker> markers = (_selectedCollection?.pins
             .mapIndexed((i, p) => Marker(
                 position: p.position,
@@ -77,7 +80,7 @@ class _HomeState extends State<Home> {
         zIndex: markers.length.toDouble()));
     return Scaffold(
       appBar: AppBar(
-        title: Text(_selectedCollection!.name),
+        title: Text(collections.isEmpty ? 'Loading...' : collections.first.name),
         actions: [
           // TODO: add collection screen
           IconButton(
