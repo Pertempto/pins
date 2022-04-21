@@ -2,20 +2,19 @@ import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:pins/providers.dart';
 import 'package:pins/widgets/sign_in.dart';
 
 import 'firebase_options.dart';
-import 'widgets/home.dart';
+import 'widgets/home_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  if (defaultTargetPlatform == TargetPlatform.android) {
-    AndroidGoogleMapsFlutter.useAndroidViewSurface = true;
-  }
-  runApp(const ProviderScope(child: MyApp()));
+  // if (defaultTargetPlatform == TargetPlatform.android) {
+  //   AndroidGoogleMapsFlutter.useAndroidViewSurface = true;
+  // }
+  runApp(ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -29,13 +28,9 @@ class MyApp extends StatelessWidget {
       title: 'Pins',
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.light(
-          primary: Colors.green[700]!,
-          primaryVariant: Colors.green[800]!,
-          secondary: Colors.pink[700]!,
-          secondaryVariant: Colors.pink[800]!,
-          onPrimary: Colors.white,
-          onSecondary: Colors.white,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.green.shade700,
+          secondary: Colors.pink.shade700,
         ),
         cardTheme: CardTheme(
           elevation: 8,
@@ -112,7 +107,7 @@ class _RootState extends ConsumerState<Root> {
           return const SignInWidget(isSignUp: true);
         } else {
           print('User: $user');
-          return const Home();
+          return const HomePage();
         }
       },
       loading: () => Scaffold(

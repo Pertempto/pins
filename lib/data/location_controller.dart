@@ -9,19 +9,17 @@ import './location_repository.dart';
 import './location_state.dart';
 
 final locationNotifierProvider = StateNotifierProvider<LocationController, LocationState>(
-  (ref) => LocationController(),
+      (ref) => LocationController(),
 );
 
 class LocationController extends StateNotifier<LocationState> {
   LocationController() : super(const LocationState());
 
   final repository = LocationRepository();
-  final Completer<GoogleMapController> _mapController = Completer();
 
   void onMapCreated(GoogleMapController controller) {
-    if (!_mapController.isCompleted) {
-      _mapController.complete(controller);
-    }
+    print('NEW MAP');
+    state = state.copyWith(mapController: controller);
   }
 
   Future<void> getCurrentLocation() async {
@@ -35,27 +33,29 @@ class LocationController extends StateNotifier<LocationState> {
     }
   }
 
-  Future<void> getNewLocation() async {
-    await _setNewLocation();
-    await _setMaker();
+  Future<void> goToMe() async {
+    await _setNewLocation(state.currentLocation);
+    await _moveCamera(zoom: 18);
   }
 
-  Future<void> _setNewLocation() async {
-    state = state.copyWith(newLocation: const LatLng(35.658034, 139.701636));
+  Future<void> _setNewLocation(LatLng location) async {
+    state = state.copyWith(newLocation: location);
   }
 
-  Future<void> _setMaker() async {
+  Future<void> _moveCamera({double zoom: 15}) async {
     // Set markers
-    final Set<Marker> _markers = {};
-    _markers.add(Marker(
-        markerId: MarkerId(state.newLocation.toString()),
-        position: state.newLocation,
-        infoWindow: const InfoWindow(title: 'Remember Here', snippet: 'good place'),
-        icon: BitmapDescriptor.defaultMarker));
-    state = state.copyWith(markers: _markers);
+    // final Set<Marker> _markers = {};
+    // _markers.add(Marker(
+    //     markerId: MarkerId(state.newLocation.toString()),
+    //     position: state.newLocation,
+    //     infoWindow: const InfoWindow(title: 'Remember Here', snippet: 'good place'),
+    //     icon: BitmapDescriptor.defaultMarker));
+    // state = state.copyWith(markers: _markers);
 
     // Shift camera position
-    final GoogleMapController controller = await _mapController.future;
-    controller.animateCamera(CameraUpdate.newLatLng(state.newLocation));
+    CameraPosition cameraPos = CameraPosition(target: state.newLocation, zoom: zoom);
+    if (state.mapController != null) {
+      state.mapController!.animateCamera(CameraUpdate.newCameraPosition(cameraPos));
+    }
   }
 }

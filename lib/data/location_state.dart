@@ -12,5 +12,6 @@ class LocationState with _$LocationState {
     @Default(LatLng(35.658034, 139.701636)) LatLng newLocation,
     @Default({}) Set<Marker> markers,
     String? errorMessage,
+    GoogleMapController? mapController
   }) = _LocationState;
 }

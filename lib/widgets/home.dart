@@ -11,121 +11,74 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import '../data/collection.dart';
 import '../data/location_controller.dart';
 import '../data/pin.dart';
+import '../providers.dart';
 
 class Home extends HookConsumerWidget {
   const Home({Key? key}) : super(key: key);
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final locationState = ref.watch(locationNotifierProvider);
-    final locationNotifier = ref.watch(locationNotifierProvider.notifier);
 
-    useEffect(() {
-      Future.microtask(() async {
-        ref.watch(locationNotifierProvider.notifier).getCurrentLocation();
-      });
-      return;
-    }, const []);
+@override
+Widget build(BuildContext context, WidgetRef ref) {
+  final Completer<GoogleMapController> completer = Completer();
+  final collections = ref.watch(userCollectionsProvider);
+  // final position = ref.watch(geolocatorContStaNotiPro);
+  final locationIcon = useFuture(
+      BitmapDescriptor.fromAssetImage(const ImageConfiguration(size: Size(72, 72)), 'assets/icon/location.png'),
+      initialData: BitmapDescriptor.defaultMarker);
+  final pinIcon = useFuture(
+      BitmapDescriptor.fromAssetImage(const ImageConfiguration(size: Size(40, 72)), 'assets/icon/pin.png'),
+      initialData: BitmapDescriptor.defaultMarker);
+  final mapController = useFuture(completer.future);
+  int selectedPinIndex = -1;
 
-    return Scaffold(
-        body: locationState.isBusy
-            ? const Center(child: CircularProgressIndicator())
-            : GoogleMap(
-                mapType: MapType.normal,
-                myLocationButtonEnabled: true,
-                myLocationEnabled: true,
-                zoomControlsEnabled: false,
-                initialCameraPosition: CameraPosition(
-                  target: locationState.currentLocation,
-                  zoom: 14.4746,
-                ),
-                markers: locationState.markers,
-                onMapCreated: locationNotifier.onMapCreated,
-              ),
-        floatingActionButton: FloatingActionButton(
-            onPressed: () async {
-              locationNotifier.getNewLocation();
+  var selectedCollection = collections.first;
+  // Set<Marker> markers = (selectedCollection.pins
+  //         .mapIndexed((i, p) => Marker(
+  //             position: p.position,
+  //             markerId: MarkerId(i.toString()),
+  //             icon: pinIcon.requireData,
+  //             anchor: const Offset(0, 1),
+  //             // onTap: () => setState(() => _selectedPinIndex = i),
+  //             zIndex: i.toDouble()))
+  //         .toSet()) ??
+  //     <Marker>{};
+  // markers.add(Marker(
+  //     position: position.value!,
+  //     markerId: const MarkerId('position'),
+  //     icon: locationIcon.requireData,
+  //     anchor: const Offset(0.5, 0.5),
+  //     // onTap: () => setState(() => _selectedPinIndex = -1),
+  //     zIndex: markers.length.toDouble()));
+  return Scaffold(
+
+    body: Stack(
+      children: [
+        // GoogleMap(
+        //   mapType: MapType.hybrid,
+        //   // initialCameraPosition: CameraPosition(target: position.value!),
+        //   mapToolbarEnabled: false,
+        //   zoomControlsEnabled: false,
+        //   // markers: markers,
+        //   onMapCreated: (GoogleMapController controller) => completer.complete(controller),
+        //   onLongPress: _addPin,
+        // ),
+        // // _pinView(context, selectedPinIndex, selectedCollection, position.value!),
+      ],
+    ),
+    floatingActionButton: !mapController.hasData
+        ? null
+        : FloatingActionButton(
+            onPressed: () {
+              selectedPinIndex = -1;
+              // _updateView(completer, position.value!);
             },
-            child: const Icon(Icons.location_searching)));
-  }
-
-// @override
-// Widget build(BuildContext context, WidgetRef ref) {
-//   final Completer<GoogleMapController> completer = Completer();
-//   final collections = ref.watch(userCollectionsProvider);
-//   // final position = ref.watch(geolocatorContStaNotiPro);
-//   final locationIcon = useFuture(
-//       BitmapDescriptor.fromAssetImage(const ImageConfiguration(size: Size(72, 72)), 'assets/icon/location.png'),
-//       initialData: BitmapDescriptor.defaultMarker);
-//   final pinIcon = useFuture(
-//       BitmapDescriptor.fromAssetImage(const ImageConfiguration(size: Size(40, 72)), 'assets/icon/pin.png'),
-//       initialData: BitmapDescriptor.defaultMarker);
-//   final mapController = useFuture(completer.future);
-//   int selectedPinIndex = -1;
-//
-//   var selectedCollection = collections.first;
-//   Set<Marker> markers = (selectedCollection.pins
-//           .mapIndexed((i, p) => Marker(
-//               position: p.position,
-//               markerId: MarkerId(i.toString()),
-//               icon: pinIcon.requireData,
-//               anchor: const Offset(0, 1),
-//               // onTap: () => setState(() => _selectedPinIndex = i),
-//               zIndex: i.toDouble()))
-//           .toSet()) ??
-//       <Marker>{};
-//   markers.add(Marker(
-//       position: position.value!,
-//       markerId: const MarkerId('position'),
-//       icon: locationIcon.requireData,
-//       anchor: const Offset(0.5, 0.5),
-//       // onTap: () => setState(() => _selectedPinIndex = -1),
-//       zIndex: markers.length.toDouble()));
-//   return Scaffold(
-//     appBar: AppBar(
-//       title: Text(collections.isEmpty ? 'Loading...' : collections.first.name),
-//       actions: [
-//         // TODO: add collection screen
-//         IconButton(
-//           icon: const Icon(MdiIcons.playlistEdit),
-//           onPressed: () {},
-//           tooltip: 'View Collection',
-//         ),
-//         IconButton(
-//           icon: const Icon(MdiIcons.cog),
-//           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const Settings())),
-//           tooltip: 'Settings',
-//         ),
-//       ],
-//     ),
-//     body: Stack(
-//       children: [
-//         GoogleMap(
-//           mapType: MapType.hybrid,
-//           initialCameraPosition: CameraPosition(target: position.value!),
-//           mapToolbarEnabled: false,
-//           zoomControlsEnabled: false,
-//           markers: markers,
-//           onMapCreated: (GoogleMapController controller) => completer.complete(controller),
-//           onLongPress: _addPin,
-//         ),
-//         _pinView(context, selectedPinIndex, selectedCollection, position.value!),
-//       ],
-//     ),
-//     floatingActionButton: !mapController.hasData
-//         ? null
-//         : FloatingActionButton(
-//             onPressed: () {
-//               selectedPinIndex = -1;
-//               _updateView(completer, position.value!);
-//             },
-//             tooltip: 'Find Me',
-//             child: const Icon(MdiIcons.crosshairsGps),
-//             heroTag: null,
-//           ),
-//     resizeToAvoidBottomInset: true,
-//   );
-// }
+            tooltip: 'Find Me',
+            child: const Icon(MdiIcons.crosshairsGps),
+            heroTag: null,
+          ),
+    resizeToAvoidBottomInset: true,
+  );
+}
 
   _locate() {
     // setState(() {
