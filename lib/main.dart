@@ -113,7 +113,7 @@ class _RootState extends ConsumerState<Root> {
           if (kDebugMode) {
             print('User: $user');
           }
-          return const HomePage();
+          return HomePage();
         }
       },
       loading: () => Scaffold(
