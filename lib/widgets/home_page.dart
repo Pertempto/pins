@@ -15,7 +15,10 @@ import 'settings.dart';
 class HomePage extends HookConsumerWidget {
   HomePage({Key? key}) : super(key: key);
 
-  final _pinFuture =
+  final _locationIconFuture =
+      BitmapDescriptor.fromAssetImage(const ImageConfiguration(size: Size(72, 72)), 'assets/icon/location.png');
+
+  final _pinIconFuture =
       BitmapDescriptor.fromAssetImage(const ImageConfiguration(size: Size(40, 72)), 'assets/icon/pin.png');
 
   @override
@@ -27,7 +30,8 @@ class HomePage extends HookConsumerWidget {
     if (currentCollectionNotifier != null && currentPinIndex.value >= currentCollectionNotifier.pins.length) {
       currentPinIndex.value = -1;
     }
-    final pinIcon = useFuture(useMemoized(() => _pinFuture), initialData: BitmapDescriptor.defaultMarker);
+    final locationIcon = useFuture(useMemoized(() => _locationIconFuture), initialData: BitmapDescriptor.defaultMarker);
+    final pinIcon = useFuture(useMemoized(() => _pinIconFuture), initialData: BitmapDescriptor.defaultMarker);
     useEffect(() {
       Future.microtask(() async => ref.watch(mapNotifierProvider.notifier).getCurrentLocation());
       return;
@@ -41,11 +45,30 @@ class HomePage extends HookConsumerWidget {
     deletePin() {
       currentCollectionNotifier!.removePin(currentPinIndex.value);
       currentPinIndex.value = -1;
+      mapNotifier.goToMe();
     }
+
+    Set<Marker> markers = currentCollectionNotifier?.pins
+            .mapIndexed((i, p) => Marker(
+                position: p.position,
+                markerId: MarkerId(i.toString()),
+                anchor: const Offset(0, 1),
+                onTap: () => currentPinIndex.value = i,
+                zIndex: i.toDouble(),
+                icon: pinIcon.requireData))
+            .toSet() ??
+        {};
+    markers.add(Marker(
+        position: mapState.currentLocation,
+        markerId: const MarkerId('position'),
+        icon: locationIcon.requireData,
+        anchor: const Offset(0.5, 0.5),
+        onTap: () => currentPinIndex.value = -1,
+        zIndex: markers.length.toDouble()));
 
     return Scaffold(
         appBar: AppBar(
-          title: const Text('Pins'),
+          title: Text(currentCollectionNotifier == null ? 'Pins' : currentCollectionNotifier.name),
           actions: [
             // TODO: add collection screen
             IconButton(
@@ -68,19 +91,10 @@ class HomePage extends HookConsumerWidget {
                     mapType: MapType.hybrid,
                     mapToolbarEnabled: false,
                     myLocationButtonEnabled: false,
-                    myLocationEnabled: true,
+                    myLocationEnabled: false,
                     zoomControlsEnabled: false,
                     initialCameraPosition: CameraPosition(target: mapState.currentLocation, zoom: 15),
-                    markers: currentCollectionNotifier?.pins
-                            .mapIndexed((i, p) => Marker(
-                                position: p.position,
-                                markerId: MarkerId(i.toString()),
-                                anchor: const Offset(0, 1),
-                                onTap: () => currentPinIndex.value = i,
-                                zIndex: i.toDouble(),
-                                icon: pinIcon.requireData))
-                            .toSet() ??
-                        {},
+                    markers: markers,
                     polylines: currentPinIndex.value == -1 || currentCollectionNotifier == null
                         ? {}
                         : {
@@ -97,31 +111,43 @@ class HomePage extends HookConsumerWidget {
                             ),
                           },
                     onMapCreated: mapNotifier.onMapCreated,
+                    onTap: (_) => currentPinIndex.value = -1,
                     onLongPress: addPin,
                   ),
                   if (currentCollectionNotifier != null)
                     _pinView(
-                      context,
-                      currentPinIndex.value,
-                      currentCollectionNotifier,
-                      mapState.currentLocation,
-                      addPin,
-                      deletePin,
+                      context: context,
+                      selectedPinIndex: currentPinIndex.value,
+                      selectedCollection: currentCollectionNotifier,
+                      currentPosition: mapState.currentLocation,
+                      onSelectPin: () => _selectPinDialog(
+                        context: context,
+                        collection: currentCollectionNotifier,
+                        onSelected: (index) => currentPinIndex.value = index,
+                      ),
+                      onAddPin: addPin,
+                      onDeletePin: deletePin,
                     ),
                 ],
               ),
         floatingActionButton: FloatingActionButton(
           onPressed: () async {
             currentPinIndex.value = -1;
-            print(currentPinIndex.value);
-            return mapNotifier.goToMe();
+            mapNotifier.goToMe();
           },
           child: const Icon(MdiIcons.crosshairsGps),
         ));
   }
 
-  Widget _pinView(BuildContext context, int selectedPinIndex, Collection selectedCollection, LatLng currentPosition,
-      Function(LatLng) onAddPin, Function() onDeletePin) {
+  Widget _pinView({
+    required BuildContext context,
+    required int selectedPinIndex,
+    required Collection selectedCollection,
+    required LatLng currentPosition,
+    Function()? onSelectPin,
+    Function(LatLng)? onAddPin,
+    Function()? onDeletePin,
+  }) {
     TextTheme textTheme = Theme.of(context).textTheme;
     String title, note, subText;
     Widget buttonBar;
@@ -130,14 +156,13 @@ class HomePage extends HookConsumerWidget {
       note = '(${currentPosition.latitude.toStringAsFixed(4)}, ${currentPosition.longitude.toStringAsFixed(4)})';
       subText = 'Press and hold the map to add a pin.';
       buttonBar = ButtonBar(alignment: MainAxisAlignment.start, children: [
-        // TODO: make this work
-        // OutlinedButton.icon(
-        //   onPressed: () {},
-        //   icon: const Icon(MdiIcons.formatListBulleted),
-        //   label: const Text('Select Pin'),
-        // ),
         OutlinedButton.icon(
-          onPressed: () => onAddPin(currentPosition),
+          onPressed: onSelectPin,
+          icon: const Icon(MdiIcons.formatListBulleted),
+          label: const Text('Select Pin'),
+        ),
+        OutlinedButton.icon(
+          onPressed: onAddPin != null ? () => onAddPin(currentPosition) : null,
           icon: const Icon(MdiIcons.mapMarkerPlus),
           label: const Text('Add Pin Here'),
         ),
@@ -193,5 +218,52 @@ class HomePage extends HookConsumerWidget {
                 ],
               ),
             )));
+  }
+
+  _selectPinDialog({
+    required BuildContext context,
+    required Collection collection,
+    required Function(int index) onSelected,
+  }) {
+    TextTheme textTheme = Theme.of(context).textTheme;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey.shade300,
+          title: const Text('Select Pin'),
+          contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ...collection.pins.mapIndexed(
+                (index, pin) => GestureDetector(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.grey.shade200,
+                    ),
+                    child: Row(
+                      children: [
+                        Text(pin.title, style: textTheme.headlineSmall),
+                        const Spacer(),
+                        Text(pin.note, style: textTheme.bodyLarge),
+                      ],
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    onSelected(index);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
