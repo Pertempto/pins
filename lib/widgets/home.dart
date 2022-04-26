@@ -9,7 +9,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 import '../data/collection.dart';
-import '../data/location_controller.dart';
 import '../data/pin.dart';
 import '../providers.dart';
 

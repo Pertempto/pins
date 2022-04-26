@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import 'collection.dart';
 
@@ -28,13 +29,17 @@ class User {
   }
 
   User.fromDocument(DocumentSnapshot documentSnapshot) {
-    print("loading user...");
+    if (kDebugMode) {
+      print("loading user...");
+    }
     assert(documentSnapshot.exists);
     _userId = documentSnapshot.id;
     Map<String, dynamic> dataMap = (documentSnapshot.data() as Map<String, dynamic>);
     _name = dataMap['name'];
     _collectionIds = List.from(dataMap['collectionIds']);
-    print("done loading user");
+    if (kDebugMode) {
+      print("done loading user");
+    }
   }
 
   static Map<String, User> usersFromSnapshot(QuerySnapshot snapshot) {
@@ -56,7 +61,6 @@ class User {
   selectCollection(String collectionId) {
     if (_collectionIds.remove(collectionId)) {
       _collectionIds.insert(0, collectionId);
-      print(_collectionIds);
       saveData();
     }
   }

@@ -6,19 +6,20 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod/riverpod.dart';
 
 import './location_repository.dart';
-import './location_state.dart';
+import './map_state.dart';
+import '../providers.dart';
+import 'collection.dart';
 
-final locationNotifierProvider = StateNotifierProvider<LocationController, LocationState>(
-      (ref) => LocationController(),
+final mapNotifierProvider = StateNotifierProvider<MapController, MapState>(
+  (ref) => MapController(),
 );
 
-class LocationController extends StateNotifier<LocationState> {
-  LocationController() : super(const LocationState());
+class MapController extends StateNotifier<MapState> {
+  MapController({Collection? collection}) : super(MapState(pins: collection == null ? [] : collection.pins));
 
   final repository = LocationRepository();
 
   void onMapCreated(GoogleMapController controller) {
-    print('NEW MAP');
     state = state.copyWith(mapController: controller);
   }
 
@@ -26,6 +27,7 @@ class LocationController extends StateNotifier<LocationState> {
     state = state.copyWith(isBusy: true);
     try {
       final data = await repository.getCurrentPosition();
+      if (!mounted) return;
       state = state.copyWith(isBusy: false, currentLocation: LatLng(data.latitude, data.longitude));
     } on Exception catch (e, s) {
       debugPrint('login error: $e - stack: $s');
@@ -34,7 +36,9 @@ class LocationController extends StateNotifier<LocationState> {
   }
 
   Future<void> goToMe() async {
+    print('GO TO ME ${state.currentLocation}');
     await _setNewLocation(state.currentLocation);
+    print('MOVE CAMERA...');
     await _moveCamera(zoom: 18);
   }
 
@@ -42,7 +46,7 @@ class LocationController extends StateNotifier<LocationState> {
     state = state.copyWith(newLocation: location);
   }
 
-  Future<void> _moveCamera({double zoom: 15}) async {
+  Future<void> _moveCamera({double zoom = 15}) async {
     // Set markers
     // final Set<Marker> _markers = {};
     // _markers.add(Marker(
@@ -54,8 +58,11 @@ class LocationController extends StateNotifier<LocationState> {
 
     // Shift camera position
     CameraPosition cameraPos = CameraPosition(target: state.newLocation, zoom: zoom);
+    print('MOVING CAMERA...');
     if (state.mapController != null) {
+      print('ANIMATE...');
       state.mapController!.animateCamera(CameraUpdate.newCameraPosition(cameraPos));
     }
+    print('MOVE CAMERA DONE');
   }
 }

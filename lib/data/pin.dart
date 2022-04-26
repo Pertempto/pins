@@ -1,5 +1,6 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+// TODO: FREEZE this class
 class Pin {
   late String _title;
   late String _note;

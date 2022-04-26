@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:pins/providers.dart';
 import 'package:pins/widgets/sign_in.dart';
@@ -11,10 +12,10 @@ import 'widgets/home_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  // if (defaultTargetPlatform == TargetPlatform.android) {
-  //   AndroidGoogleMapsFlutter.useAndroidViewSurface = true;
-  // }
-  runApp(ProviderScope(child: MyApp()));
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    AndroidGoogleMapsFlutter.useAndroidViewSurface = true;
+  }
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -62,11 +63,12 @@ class _RootState extends ConsumerState<Root> {
         options: DefaultFirebaseOptions.currentPlatform,
       );
       setState(() {
-        print("INIT DONE");
         _initialized = true;
       });
     } catch (e) {
-      print("ERROR: $e");
+      if (kDebugMode) {
+        print("ERROR: $e");
+      }
       // Set `_error` state to true if Firebase initialization fails
       setState(() {
         _error = true;
@@ -103,10 +105,14 @@ class _RootState extends ConsumerState<Root> {
     return user.when(
       data: (user) {
         if (user == null) {
-          print('NO USER');
+          if (kDebugMode) {
+            print('NO USER');
+          }
           return const SignInWidget(isSignUp: true);
         } else {
-          print('User: $user');
+          if (kDebugMode) {
+            print('User: $user');
+          }
           return const HomePage();
         }
       },

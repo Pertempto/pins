@@ -50,3 +50,12 @@ final userCollectionsProvider = Provider<List<Collection>>(
     }
   },
 );
+
+final userCurrentCollectionProvider = Provider<Collection?>((ref) {
+  final collections = ref.watch(userCollectionsProvider);
+  Collection? collection;
+  if (collections.isNotEmpty) {
+    collection = collections[0];
+  }
+  return collection;
+});
