@@ -24,6 +24,9 @@ class HomePage extends HookConsumerWidget {
     final mapNotifier = ref.watch(mapNotifierProvider.notifier);
     final currentCollectionNotifier = ref.watch(userCurrentCollectionProvider);
     final currentPinIndex = useState(-1);
+    if (currentCollectionNotifier != null && currentPinIndex.value >= currentCollectionNotifier.pins.length) {
+      currentPinIndex.value = -1;
+    }
     final pinIcon = useFuture(useMemoized(() => _pinFuture), initialData: BitmapDescriptor.defaultMarker);
     useEffect(() {
       Future.microtask(() async => ref.watch(mapNotifierProvider.notifier).getCurrentLocation());
