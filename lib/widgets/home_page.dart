@@ -176,12 +176,11 @@ class HomePage extends HookConsumerWidget {
       double distanceFeet = distanceMeters * 3.280839895;
       subText = 'Distance from here: ${distanceFeet.toStringAsFixed(1)} ft.';
       buttonBar = ButtonBar(alignment: MainAxisAlignment.start, children: [
-        // TODO: make this work
-        // OutlinedButton.icon(
-        //   onPressed: () {},
-        //   icon: const Icon(MdiIcons.formatListBulleted),
-        //   label: const Text('Select Pin'),
-        // ),
+        OutlinedButton.icon(
+          onPressed: onSelectPin,
+          icon: const Icon(MdiIcons.formatListBulleted),
+          label: const Text('Select Pin'),
+        ),
         // TODO: make this work
         // OutlinedButton.icon(
         //   onPressed: () {},
@@ -233,34 +232,36 @@ class HomePage extends HookConsumerWidget {
           backgroundColor: Colors.grey.shade300,
           title: const Text('Select Pin'),
           contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ...collection.pins.mapIndexed(
-                (index, pin) => GestureDetector(
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    margin: const EdgeInsets.only(bottom: 8),
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: Colors.grey.shade200,
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ...collection.pins.mapIndexed(
+                  (index, pin) => GestureDetector(
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 8),
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.grey.shade200,
+                      ),
+                      child: Row(
+                        children: [
+                          Text(pin.title, style: textTheme.headlineSmall),
+                          const Spacer(),
+                          Text(pin.note, style: textTheme.bodyLarge),
+                        ],
+                      ),
                     ),
-                    child: Row(
-                      children: [
-                        Text(pin.title, style: textTheme.headlineSmall),
-                        const Spacer(),
-                        Text(pin.note, style: textTheme.bodyLarge),
-                      ],
-                    ),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      onSelected(index);
+                    },
                   ),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    onSelected(index);
-                  },
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

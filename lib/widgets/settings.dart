@@ -25,8 +25,9 @@ class _SettingsState extends ConsumerState<Settings> {
               padding: const EdgeInsets.all(8),
               child: Row(
                 children: [
-                  Text(collection.name + ' ' + collection.collectionId, style: textTheme.titleLarge),
+                  Text(collection.name, style: textTheme.titleLarge),
                   const Spacer(),
+                  Text(collection.collectionId, style: textTheme.titleMedium),
                   const Icon(MdiIcons.chevronRight),
                 ],
               ),
