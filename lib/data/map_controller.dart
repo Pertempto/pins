@@ -19,7 +19,7 @@ class MapController extends StateNotifier<MapState> {
 
   final repository = LocationRepository();
 
-  void onMapCreated(GoogleMapController controller) {
+  void setGoogleMapController(GoogleMapController? controller) {
     state = state.copyWith(mapController: controller);
   }
 
@@ -38,30 +38,28 @@ class MapController extends StateNotifier<MapState> {
   }
 
   Future<void> goToMe() async {
-    await _setNewLocation(state.currentLocation);
-    await _moveCamera(zoom: 18);
+    await _setTarget(state.currentLocation);
   }
 
-  Future<void> _setNewLocation(LatLng location) async {
-    state = state.copyWith(newLocation: location);
+  Future<void> goTo(LatLng location) async {
+    await _setTarget(location);
   }
 
-  Future<void> _moveCamera({double zoom = 15}) async {
-    // Set markers
-    // final Set<Marker> _markers = {};
-    // _markers.add(Marker(
-    //     markerId: MarkerId(state.newLocation.toString()),
-    //     position: state.newLocation,
-    //     infoWindow: const InfoWindow(title: 'Remember Here', snippet: 'good place'),
-    //     icon: BitmapDescriptor.defaultMarker));
-    // state = state.copyWith(markers: _markers);
+  Future<void> _setTarget(LatLng? location) async {
+    state = state.copyWith(targetLocation: location);
+  }
 
+  Future<void> moveCamera({double zoom = 15}) async {
+    if (state.targetLocation == null) {
+      return;
+    }
     // Shift camera position
     CameraPosition cameraPos =
-        CameraPosition(target: state.newLocation, zoom: zoom);
+        CameraPosition(target: state.targetLocation!, zoom: zoom);
     if (state.mapController != null) {
       state.mapController!
           .animateCamera(CameraUpdate.newCameraPosition(cameraPos));
+      Future.delayed(Duration.zero, () => _setTarget(null));
     }
   }
 }

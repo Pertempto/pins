@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -6,7 +7,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 import '../data/collection.dart';
-import '../data/location_controller.dart';
+import '../data/map_controller.dart';
 import '../data/pin.dart';
 import '../providers.dart';
 import 'pin_view.dart';
@@ -24,12 +25,14 @@ class HomePage extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mapState = ref.watch(mapNotifierProvider);
-    final mapNotifier = ref.watch(mapNotifierProvider.notifier);
+    final mapController = ref.watch(mapNotifierProvider.notifier);
     final currentCollectionNotifier = ref.watch(userCurrentCollectionProvider);
-    final currentPinIndex = useState(-1);
+    final currentPinIndexNotifier = useState(-1);
+    final showMap = useState(true);
     if (currentCollectionNotifier != null &&
-        currentPinIndex.value >= currentCollectionNotifier.pins.length) {
-      currentPinIndex.value = -1;
+        currentPinIndexNotifier.value >=
+            currentCollectionNotifier.pins.length) {
+      currentPinIndexNotifier.value = -1;
     }
     final locationIcon = useFuture(useMemoized(() => _locationIconFuture),
         initialData: BitmapDescriptor.defaultMarker);
@@ -41,15 +44,22 @@ class HomePage extends HookConsumerWidget {
       return;
     }, const []);
 
+    if (mapState.targetLocation != null) {
+      if (kDebugMode) {
+        print('MOVING CAMERA TO TARGET');
+      }
+      mapController.moveCamera();
+    }
+
     addPin(LatLng point) {
       currentCollectionNotifier!.createPin(point);
-      currentPinIndex.value = currentCollectionNotifier.pins.length - 1;
+      currentPinIndexNotifier.value = currentCollectionNotifier.pins.length - 1;
     }
 
     deletePin() {
-      currentCollectionNotifier!.removePin(currentPinIndex.value);
-      currentPinIndex.value = -1;
-      mapNotifier.goToMe();
+      currentCollectionNotifier!.removePin(currentPinIndexNotifier.value);
+      currentPinIndexNotifier.value = -1;
+      mapController.goToMe();
     }
 
     Set<Marker> markers = currentCollectionNotifier?.pins
@@ -57,7 +67,7 @@ class HomePage extends HookConsumerWidget {
                 position: p.position,
                 markerId: MarkerId(i.toString()),
                 anchor: const Offset(0, 1),
-                onTap: () => currentPinIndex.value = i,
+                onTap: () => currentPinIndexNotifier.value = i,
                 zIndex: i.toDouble(),
                 icon: pinIcon.requireData))
             .toSet() ??
@@ -67,21 +77,118 @@ class HomePage extends HookConsumerWidget {
         markerId: const MarkerId('position'),
         icon: locationIcon.requireData,
         anchor: const Offset(0.5, 0.5),
-        onTap: () => currentPinIndex.value = -1,
+        onTap: () => currentPinIndexNotifier.value = -1,
         zIndex: markers.length.toDouble()));
 
+    Widget content;
+    if (showMap.value) {
+      content = Stack(
+        children: [
+          GoogleMap(
+            mapType: MapType.hybrid,
+            mapToolbarEnabled: false,
+            myLocationButtonEnabled: false,
+            myLocationEnabled: false,
+            zoomControlsEnabled: false,
+            initialCameraPosition:
+                CameraPosition(target: mapState.currentLocation, zoom: 15),
+            markers: markers,
+            polylines: currentPinIndexNotifier.value == -1 ||
+                    currentCollectionNotifier == null
+                ? {}
+                : {
+                    Polyline(
+                      polylineId: const PolylineId('CURRENT PIN LINE'),
+                      points: [
+                        currentCollectionNotifier
+                            .pins[currentPinIndexNotifier.value].position,
+                        mapState.currentLocation,
+                      ],
+                      visible: true,
+                      color: Colors.blue,
+                      width: 5,
+                      patterns: [PatternItem.dot, PatternItem.gap(20)],
+                    ),
+                  },
+            onMapCreated: mapController.setGoogleMapController,
+            onTap: (_) => currentPinIndexNotifier.value = -1,
+            onLongPress: addPin,
+          ),
+          if (currentCollectionNotifier != null)
+            _pinView(
+              context: context,
+              selectedPinIndex: currentPinIndexNotifier.value,
+              selectedCollection: currentCollectionNotifier,
+              currentPosition: mapState.currentLocation,
+              onSelectPin: () => _selectPinDialog(
+                context: context,
+                collection: currentCollectionNotifier,
+                onSelected: (index) {
+                  currentPinIndexNotifier.value = index;
+                  mapController
+                      .goTo(currentCollectionNotifier.pins[index].position);
+                },
+              ),
+              onAddPin: addPin,
+              onDeletePin: deletePin,
+            ),
+        ],
+      );
+    } else {
+      Future.delayed(
+          Duration.zero, () => mapController.setGoogleMapController(null));
+      content = SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ...currentCollectionNotifier!.pins.mapIndexed(
+              (index, pin) => InkWell(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      PinView(
+                        pin: pin,
+                        currentPosition: mapState.currentLocation,
+                      ),
+                      const Spacer(),
+                      if (index == currentPinIndexNotifier.value)
+                        const Icon(MdiIcons.mapMarker),
+                    ],
+                  ),
+                ),
+                onTap: () {
+                  currentPinIndexNotifier.value = index;
+                  showMap.value = true;
+                  print('GO TO PIN!!!');
+                  mapController
+                      .goTo(currentCollectionNotifier.pins[index].position);
+                },
+              ),
+            ),
+            const SizedBox(height: 80),
+          ],
+        ),
+      );
+    }
     return Scaffold(
         appBar: AppBar(
           title: Text(currentCollectionNotifier == null
               ? 'Pins'
               : currentCollectionNotifier.name),
           actions: [
-            // TODO: add collection screen
-            IconButton(
-              icon: const Icon(MdiIcons.playlistEdit),
-              onPressed: () {},
-              tooltip: 'View Collection',
-            ),
+            if (showMap.value)
+              IconButton(
+                icon: const Icon(MdiIcons.viewList),
+                onPressed: () => showMap.value = false,
+                tooltip: 'List View',
+              )
+            else
+              IconButton(
+                icon: const Icon(MdiIcons.map),
+                onPressed: () => showMap.value = true,
+                tooltip: 'Map View',
+              ),
             IconButton(
               icon: const Icon(MdiIcons.cog),
               onPressed: () => Navigator.push(context,
@@ -92,58 +199,11 @@ class HomePage extends HookConsumerWidget {
         ),
         body: mapState.isBusy
             ? const Center(child: CircularProgressIndicator())
-            : Stack(
-                children: [
-                  GoogleMap(
-                    mapType: MapType.hybrid,
-                    mapToolbarEnabled: false,
-                    myLocationButtonEnabled: false,
-                    myLocationEnabled: false,
-                    zoomControlsEnabled: false,
-                    initialCameraPosition: CameraPosition(
-                        target: mapState.currentLocation, zoom: 15),
-                    markers: markers,
-                    polylines: currentPinIndex.value == -1 ||
-                            currentCollectionNotifier == null
-                        ? {}
-                        : {
-                            Polyline(
-                              polylineId: const PolylineId('CURRENT PIN LINE'),
-                              points: [
-                                currentCollectionNotifier
-                                    .pins[currentPinIndex.value].position,
-                                mapState.currentLocation,
-                              ],
-                              visible: true,
-                              color: Colors.blue,
-                              width: 5,
-                              patterns: [PatternItem.dot, PatternItem.gap(20)],
-                            ),
-                          },
-                    onMapCreated: mapNotifier.onMapCreated,
-                    onTap: (_) => currentPinIndex.value = -1,
-                    onLongPress: addPin,
-                  ),
-                  if (currentCollectionNotifier != null)
-                    _pinView(
-                      context: context,
-                      selectedPinIndex: currentPinIndex.value,
-                      selectedCollection: currentCollectionNotifier,
-                      currentPosition: mapState.currentLocation,
-                      onSelectPin: () => _selectPinDialog(
-                        context: context,
-                        collection: currentCollectionNotifier,
-                        onSelected: (index) => currentPinIndex.value = index,
-                      ),
-                      onAddPin: addPin,
-                      onDeletePin: deletePin,
-                    ),
-                ],
-              ),
+            : content,
         floatingActionButton: FloatingActionButton(
           onPressed: () async {
-            currentPinIndex.value = -1;
-            mapNotifier.goToMe();
+            currentPinIndexNotifier.value = -1;
+            mapController.goToMe();
           },
           child: const Icon(MdiIcons.crosshairsGps),
         ));

@@ -33,11 +33,11 @@ class PinView extends HookConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(title, style: textTheme.headline6!),
             const SizedBox(width: 16),
             Text(note, style: textTheme.subtitle1!),
-            const Spacer(),
           ],
         ),
         Text(subText, style: textTheme.subtitle1!),
