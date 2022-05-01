@@ -25,8 +25,15 @@ class PinView extends HookConsumerWidget {
         pin.position.latitude,
         pin.position.longitude);
     double distanceFeet = distanceMeters * 3.280839895;
-    String subText =
-        'Distance from here: ${distanceFeet.toStringAsFixed(1)} ft.';
+    int ftPerMile = 5280;
+    String distanceString;
+    if (distanceFeet < ftPerMile * 0.25) {
+      distanceString = '${distanceFeet.toStringAsFixed(1)} ft.';
+    } else {
+      double distanceMiles = distanceFeet / ftPerMile;
+      distanceString = '${distanceMiles.toStringAsFixed(1)} miles';
+    }
+    String subText = 'Distance from here: $distanceString';
     TextTheme textTheme = Theme.of(context).textTheme;
     return Column(
       mainAxisSize: MainAxisSize.min,
