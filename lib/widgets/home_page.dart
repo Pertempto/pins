@@ -1,7 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
@@ -10,16 +9,17 @@ import '../data/collection.dart';
 import '../data/location_controller.dart';
 import '../data/pin.dart';
 import '../providers.dart';
+import 'pin_view.dart';
 import 'settings.dart';
 
 class HomePage extends HookConsumerWidget {
   HomePage({Key? key}) : super(key: key);
 
-  final _locationIconFuture =
-      BitmapDescriptor.fromAssetImage(const ImageConfiguration(size: Size(72, 72)), 'assets/icon/location.png');
+  final _locationIconFuture = BitmapDescriptor.fromAssetImage(
+      const ImageConfiguration(size: Size(72, 72)), 'assets/icon/location.png');
 
-  final _pinIconFuture =
-      BitmapDescriptor.fromAssetImage(const ImageConfiguration(size: Size(40, 72)), 'assets/icon/pin.png');
+  final _pinIconFuture = BitmapDescriptor.fromAssetImage(
+      const ImageConfiguration(size: Size(40, 72)), 'assets/icon/pin.png');
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,13 +27,17 @@ class HomePage extends HookConsumerWidget {
     final mapNotifier = ref.watch(mapNotifierProvider.notifier);
     final currentCollectionNotifier = ref.watch(userCurrentCollectionProvider);
     final currentPinIndex = useState(-1);
-    if (currentCollectionNotifier != null && currentPinIndex.value >= currentCollectionNotifier.pins.length) {
+    if (currentCollectionNotifier != null &&
+        currentPinIndex.value >= currentCollectionNotifier.pins.length) {
       currentPinIndex.value = -1;
     }
-    final locationIcon = useFuture(useMemoized(() => _locationIconFuture), initialData: BitmapDescriptor.defaultMarker);
-    final pinIcon = useFuture(useMemoized(() => _pinIconFuture), initialData: BitmapDescriptor.defaultMarker);
+    final locationIcon = useFuture(useMemoized(() => _locationIconFuture),
+        initialData: BitmapDescriptor.defaultMarker);
+    final pinIcon = useFuture(useMemoized(() => _pinIconFuture),
+        initialData: BitmapDescriptor.defaultMarker);
     useEffect(() {
-      Future.microtask(() async => ref.watch(mapNotifierProvider.notifier).getCurrentLocation());
+      Future.microtask(() async =>
+          ref.watch(mapNotifierProvider.notifier).getCurrentLocation());
       return;
     }, const []);
 
@@ -68,7 +72,9 @@ class HomePage extends HookConsumerWidget {
 
     return Scaffold(
         appBar: AppBar(
-          title: Text(currentCollectionNotifier == null ? 'Pins' : currentCollectionNotifier.name),
+          title: Text(currentCollectionNotifier == null
+              ? 'Pins'
+              : currentCollectionNotifier.name),
           actions: [
             // TODO: add collection screen
             IconButton(
@@ -78,7 +84,8 @@ class HomePage extends HookConsumerWidget {
             ),
             IconButton(
               icon: const Icon(MdiIcons.cog),
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const Settings())),
+              onPressed: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => const Settings())),
               tooltip: 'Settings',
             ),
           ],
@@ -93,15 +100,18 @@ class HomePage extends HookConsumerWidget {
                     myLocationButtonEnabled: false,
                     myLocationEnabled: false,
                     zoomControlsEnabled: false,
-                    initialCameraPosition: CameraPosition(target: mapState.currentLocation, zoom: 15),
+                    initialCameraPosition: CameraPosition(
+                        target: mapState.currentLocation, zoom: 15),
                     markers: markers,
-                    polylines: currentPinIndex.value == -1 || currentCollectionNotifier == null
+                    polylines: currentPinIndex.value == -1 ||
+                            currentCollectionNotifier == null
                         ? {}
                         : {
                             Polyline(
                               polylineId: const PolylineId('CURRENT PIN LINE'),
                               points: [
-                                currentCollectionNotifier.pins[currentPinIndex.value].position,
+                                currentCollectionNotifier
+                                    .pins[currentPinIndex.value].position,
                                 mapState.currentLocation,
                               ],
                               visible: true,
@@ -149,12 +159,27 @@ class HomePage extends HookConsumerWidget {
     Function()? onDeletePin,
   }) {
     TextTheme textTheme = Theme.of(context).textTheme;
-    String title, note, subText;
+    Widget content;
     Widget buttonBar;
     if (selectedPinIndex == -1) {
-      title = 'Here';
-      note = '(${currentPosition.latitude.toStringAsFixed(4)}, ${currentPosition.longitude.toStringAsFixed(4)})';
-      subText = 'Press and hold the map to add a pin.';
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('Here', style: textTheme.headline6!),
+              const SizedBox(width: 16),
+              Text(
+                  '(${currentPosition.latitude.toStringAsFixed(4)}, ${currentPosition.longitude.toStringAsFixed(4)})',
+                  style: textTheme.subtitle1!),
+              const Spacer(),
+            ],
+          ),
+          Text('Press and hold the map to add a pin.',
+              style: textTheme.subtitle1!),
+        ],
+      );
       buttonBar = ButtonBar(alignment: MainAxisAlignment.start, children: [
         OutlinedButton.icon(
           onPressed: onSelectPin,
@@ -169,12 +194,7 @@ class HomePage extends HookConsumerWidget {
       ]);
     } else {
       Pin pin = selectedCollection.pins[selectedPinIndex];
-      title = pin.title;
-      note = pin.note;
-      double distanceMeters = Geolocator.distanceBetween(
-          currentPosition.latitude, currentPosition.longitude, pin.position.latitude, pin.position.longitude);
-      double distanceFeet = distanceMeters * 3.280839895;
-      subText = 'Distance from here: ${distanceFeet.toStringAsFixed(1)} ft.';
+      content = PinView(pin: pin, currentPosition: currentPosition);
       buttonBar = ButtonBar(alignment: MainAxisAlignment.start, children: [
         OutlinedButton.icon(
           onPressed: onSelectPin,
@@ -199,24 +219,12 @@ class HomePage extends HookConsumerWidget {
         child: Card(
             margin: const EdgeInsets.all(16),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(title, style: textTheme.headline6!),
-                      const SizedBox(width: 16),
-                      Text(note, style: textTheme.subtitle1!),
-                      const Spacer(),
-                    ],
-                  ),
-                  Text(subText, style: textTheme.subtitle1!),
-                  buttonBar
-                ],
-              ),
-            )));
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [content, buttonBar],
+                ))));
   }
 
   _selectPinDialog({

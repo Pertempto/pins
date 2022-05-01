@@ -36,7 +36,8 @@ class _SignInWidgetState extends State<SignInWidget> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(16),
-                  constraints: const BoxConstraints(minWidth: 100, maxWidth: 400),
+                  constraints:
+                      const BoxConstraints(minWidth: 100, maxWidth: 400),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -74,7 +75,11 @@ class _SignInWidgetState extends State<SignInWidget> {
       return Container(
         padding: const EdgeInsets.only(top: 8),
         alignment: Alignment.center,
-        child: Text(_errorMessage, style: Theme.of(context).textTheme.bodyText1!.copyWith(color: Colors.red)),
+        child: Text(_errorMessage,
+            style: Theme.of(context)
+                .textTheme
+                .bodyText1!
+                .copyWith(color: Colors.red)),
       );
     } else {
       return Container(height: 0);
@@ -92,7 +97,8 @@ class _SignInWidgetState extends State<SignInWidget> {
           hintText: 'Email',
           icon: Icon(Icons.mail, color: Colors.grey),
         ),
-        validator: (value) => value == null || value.isEmpty ? 'Email can\'t be empty' : null,
+        validator: (value) =>
+            value == null || value.isEmpty ? 'Email can\'t be empty' : null,
         onSaved: (value) => _email = value!.trim(),
       ),
     );
@@ -111,7 +117,9 @@ class _SignInWidgetState extends State<SignInWidget> {
           hintText: 'Username',
           icon: Icon(Icons.person, color: Colors.grey),
         ),
-        validator: (value) => value == null || value.trim().length < 5 ? 'Username is too short' : null,
+        validator: (value) => value == null || value.trim().length < 5
+            ? 'Username is too short'
+            : null,
         onSaved: (value) => _username = value!.trim(),
       ),
     );
@@ -134,6 +142,7 @@ class _SignInWidgetState extends State<SignInWidget> {
           } else if (value.length < 6) {
             return "Password is too short.";
           }
+          return null;
         },
         onSaved: (value) => _password = value!,
         onFieldSubmitted: _isSignUp
@@ -165,6 +174,7 @@ class _SignInWidgetState extends State<SignInWidget> {
           } else if (value.length < 6) {
             return "Password is too short.";
           }
+          return null;
         },
         onSaved: (value) => _confirmPassword = value!,
       ),
@@ -253,8 +263,8 @@ class _SignInWidgetState extends State<SignInWidget> {
   }
 
   Future<String> _signUp(String email, String password) async {
-    UserCredential result =
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: password);
+    UserCredential result = await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(email: email, password: password);
     if (result.user == null) {
       return "";
     }
@@ -262,7 +272,8 @@ class _SignInWidgetState extends State<SignInWidget> {
   }
 
   Future<String> _signIn(String email, String password) async {
-    UserCredential result = await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: password);
+    UserCredential result = await FirebaseAuth.instance
+        .signInWithEmailAndPassword(email: email, password: password);
     if (result.user == null) {
       return "";
     }

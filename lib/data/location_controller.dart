@@ -7,7 +7,6 @@ import 'package:riverpod/riverpod.dart';
 
 import './location_repository.dart';
 import './map_state.dart';
-import '../providers.dart';
 import 'collection.dart';
 
 final mapNotifierProvider = StateNotifierProvider<MapController, MapState>(
@@ -15,7 +14,8 @@ final mapNotifierProvider = StateNotifierProvider<MapController, MapState>(
 );
 
 class MapController extends StateNotifier<MapState> {
-  MapController({Collection? collection}) : super(MapState(pins: collection == null ? [] : collection.pins));
+  MapController({Collection? collection})
+      : super(MapState(pins: collection == null ? [] : collection.pins));
 
   final repository = LocationRepository();
 
@@ -28,7 +28,9 @@ class MapController extends StateNotifier<MapState> {
     try {
       final data = await repository.getCurrentPosition();
       if (!mounted) return;
-      state = state.copyWith(isBusy: false, currentLocation: LatLng(data.latitude, data.longitude));
+      state = state.copyWith(
+          isBusy: false,
+          currentLocation: LatLng(data.latitude, data.longitude));
     } on Exception catch (e, s) {
       debugPrint('login error: $e - stack: $s');
       state = state.copyWith(isBusy: false, errorMessage: e.toString());
@@ -36,9 +38,7 @@ class MapController extends StateNotifier<MapState> {
   }
 
   Future<void> goToMe() async {
-    print('GO TO ME ${state.currentLocation}');
     await _setNewLocation(state.currentLocation);
-    print('MOVE CAMERA...');
     await _moveCamera(zoom: 18);
   }
 
@@ -57,12 +57,11 @@ class MapController extends StateNotifier<MapState> {
     // state = state.copyWith(markers: _markers);
 
     // Shift camera position
-    CameraPosition cameraPos = CameraPosition(target: state.newLocation, zoom: zoom);
-    print('MOVING CAMERA...');
+    CameraPosition cameraPos =
+        CameraPosition(target: state.newLocation, zoom: zoom);
     if (state.mapController != null) {
-      print('ANIMATE...');
-      state.mapController!.animateCamera(CameraUpdate.newCameraPosition(cameraPos));
+      state.mapController!
+          .animateCamera(CameraUpdate.newCameraPosition(cameraPos));
     }
-    print('MOVE CAMERA DONE');
   }
 }
