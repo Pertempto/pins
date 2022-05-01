@@ -120,15 +120,6 @@ class HomePage extends HookConsumerWidget {
               selectedPinIndex: currentPinIndexNotifier.value,
               selectedCollection: currentCollectionNotifier,
               currentPosition: mapState.currentLocation,
-              onSelectPin: () => _selectPinDialog(
-                context: context,
-                collection: currentCollectionNotifier,
-                onSelected: (index) {
-                  currentPinIndexNotifier.value = index;
-                  mapController
-                      .goTo(currentCollectionNotifier.pins[index].position);
-                },
-              ),
               onAddPin: addPin,
               onDeletePin: deletePin,
             ),
@@ -214,7 +205,6 @@ class HomePage extends HookConsumerWidget {
     required int selectedPinIndex,
     required Collection selectedCollection,
     required LatLng currentPosition,
-    Function()? onSelectPin,
     Function(LatLng)? onAddPin,
     Function()? onDeletePin,
   }) {
@@ -242,11 +232,6 @@ class HomePage extends HookConsumerWidget {
       );
       buttonBar = ButtonBar(alignment: MainAxisAlignment.start, children: [
         OutlinedButton.icon(
-          onPressed: onSelectPin,
-          icon: const Icon(MdiIcons.formatListBulleted),
-          label: const Text('Select Pin'),
-        ),
-        OutlinedButton.icon(
           onPressed: onAddPin != null ? () => onAddPin(currentPosition) : null,
           icon: const Icon(MdiIcons.mapMarkerPlus),
           label: const Text('Add Pin Here'),
@@ -256,11 +241,6 @@ class HomePage extends HookConsumerWidget {
       Pin pin = selectedCollection.pins[selectedPinIndex];
       content = PinView(pin: pin, currentPosition: currentPosition);
       buttonBar = ButtonBar(alignment: MainAxisAlignment.start, children: [
-        OutlinedButton.icon(
-          onPressed: onSelectPin,
-          icon: const Icon(MdiIcons.formatListBulleted),
-          label: const Text('Select Pin'),
-        ),
         // TODO: make this work
         // OutlinedButton.icon(
         //   onPressed: () {},
@@ -285,54 +265,5 @@ class HomePage extends HookConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [content, buttonBar],
                 ))));
-  }
-
-  _selectPinDialog({
-    required BuildContext context,
-    required Collection collection,
-    required Function(int index) onSelected,
-  }) {
-    TextTheme textTheme = Theme.of(context).textTheme;
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.grey.shade300,
-          title: const Text('Select Pin'),
-          contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ...collection.pins.mapIndexed(
-                  (index, pin) => GestureDetector(
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      margin: const EdgeInsets.only(bottom: 8),
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        color: Colors.grey.shade200,
-                      ),
-                      child: Row(
-                        children: [
-                          Text(pin.title, style: textTheme.headlineSmall),
-                          const Spacer(),
-                          Text(pin.note, style: textTheme.bodyLarge),
-                        ],
-                      ),
-                    ),
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      onSelected(index);
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 }
