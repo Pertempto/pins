@@ -1,93 +1,87 @@
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'pin.dart';
 
+part 'collection.g.dart';
+
+@JsonSerializable()
 class Collection {
-  late String _collectionId;
-  late String _name;
-  late List<Pin> _pins;
-  late int _pinCounter;
-  late List<String> _userIds;
+  late String collectionId;
+  String name;
+  List<Pin> pins;
+  int pinCounter;
+  List<String> ownerIds;
+  List<String> viewerIds;
+  List<String> blockedUserIds;
 
-  String get collectionId => _collectionId;
+  Collection({
+    required this.collectionId,
+    required this.name,
+    this.pins = const [],
+    this.pinCounter = 0,
+    required this.ownerIds,
+    this.viewerIds = const [],
+    this.blockedUserIds = const [],
+  });
 
-  String get name => _name;
+  factory Collection.fromJson(Map<String, dynamic> json) =>
+      _$CollectionFromJson(json);
 
-  List<Pin> get pins => _pins;
+  Map<String, dynamic> toJson() => _$CollectionToJson(this);
 
-  List<String> get userIds => _userIds;
-
-  Map<String, dynamic> get dataMap {
-    return {
-      'name': _name,
-      'pins': _pins.map((p) => p.dataMap).toList(),
-      'pinCounter': _pinCounter,
-      'userIds': _userIds,
-    };
-  }
-
-  Collection.newCollection(this._collectionId, this._name, String userId)
-      : _pins = [],
-        _pinCounter = 0,
-        _userIds = [userId] {
+  Collection.newCollection(this.name, String userId)
+      : pins = [],
+        pinCounter = 0,
+        ownerIds = [userId],
+        viewerIds = [],
+        blockedUserIds = [] {
+    collectionId = generateId();
     saveData();
   }
 
-  Collection.fromDocument(DocumentSnapshot documentSnapshot) {
+  factory Collection.fromDocument(DocumentSnapshot documentSnapshot) {
     assert(documentSnapshot.exists);
-    _collectionId = documentSnapshot.id;
-    Map<String, dynamic> data = (documentSnapshot.data() as Map<String, dynamic>);
-    _name = data['name'];
-    _pins = [];
-    for (Map<String, dynamic> pinData in data["pins"]) {
-      _pins.add(Pin.fromMap(pinData));
-    }
-    _pinCounter = data['pinCounter'];
-    _userIds = List.from(data['userIds']);
+    return Collection.fromJson(documentSnapshot.data() as Map<String, dynamic>);
   }
-
-  static Map<String, Collection> fromSnapshot(QuerySnapshot snapshot) {
-    Map<String, Collection> collections = {};
-    for (DocumentSnapshot documentSnapshot in snapshot.docs) {
-      if (documentSnapshot.exists) {
-        Collection collection = Collection.fromDocument(documentSnapshot);
-        collections[collection.collectionId] = collection;
-      }
-    }
-    return collections;
-  }
-
+  // Check if the collection has a pin with the given title.
   bool hasPinTitle(String title) {
     return pins.map((p) => p.title == title).any((b) => b);
   }
 
+  // Create a new pin and add it to the collection.
   Pin createPin(LatLng position) {
-    String title = '#${_pinCounter + 1}';
-    String note = '(${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)})';
-    Pin pin = Pin(title, note, position);
-    _pins.add(pin);
-    _pinCounter++;
+    String title = '#${pinCounter + 1}';
+    String note =
+        '(${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)})';
+    Pin pin = Pin(title: title, note: note, position: position);
+    pins.add(pin);
+    pinCounter++;
     saveData();
     return pin;
   }
 
   removePin(int index) {
-    if (index >= 0 && index < _pins.length) {
-      _pins.removeAt(index);
+    if (index >= 0 && index < pins.length) {
+      pins.removeAt(index);
       saveData();
     }
   }
 
   saveData() {
-    FirebaseFirestore.instance.collection('collections').doc(_collectionId).set(dataMap);
+    FirebaseFirestore.instance
+        .collection('collections')
+        .doc(collectionId)
+        .set(toJson());
   }
 
   static String generateId() {
     String id = '';
-    String options = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    String options =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     Random rand = Random();
     for (int i = 0; i < 6; i++) {
       id += options[rand.nextInt(options.length)];

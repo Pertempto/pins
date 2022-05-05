@@ -22,9 +22,8 @@ class User {
   }
 
   User.newUser(this._userId, this._name) : _collectionIds = [] {
-    String collectionId = Collection.generateId();
-    _collectionIds.add(collectionId);
-    Collection.newCollection(collectionId, 'My Pins', _userId);
+    Collection collection = Collection.newCollection('My Pins', _userId);
+    _collectionIds.add(collection.collectionId);
     saveData();
   }
 
@@ -34,7 +33,8 @@ class User {
     }
     assert(documentSnapshot.exists);
     _userId = documentSnapshot.id;
-    Map<String, dynamic> dataMap = (documentSnapshot.data() as Map<String, dynamic>);
+    Map<String, dynamic> dataMap =
+        (documentSnapshot.data() as Map<String, dynamic>);
     _name = dataMap['name'];
     _collectionIds = List.from(dataMap['collectionIds']);
     if (kDebugMode) {

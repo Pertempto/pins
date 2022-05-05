@@ -1,31 +1,28 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-// TODO: FREEZE this class
-class Pin {
-  late String _title;
-  late String _note;
-  late LatLng _position;
+part 'pin.freezed.dart';
+part 'pin.g.dart';
 
-  String get title => _title;
+@freezed
+class Pin with _$Pin {
+  const factory Pin({
+    required String title,
+    required String note,
+    @LatLngConvertor() required LatLng position,
+  }) = _Pin;
 
-  String get note => _note;
+  factory Pin.fromJson(Map<String, dynamic> json) => _$PinFromJson(json);
+}
 
-  LatLng get position => _position;
+class LatLngConvertor implements JsonConverter<LatLng, List<double>> {
+  const LatLngConvertor();
 
-  Map<String, dynamic> get dataMap {
-    return {
-      'title': _title,
-      'note': _note,
-      'lat': _position.latitude,
-      'lng': _position.longitude,
-    };
+  @override
+  LatLng fromJson(List<double> coordinates) {
+    return LatLng(coordinates[0], coordinates[1]);
   }
 
-  Pin(this._title, this._note, this._position);
-
-  Pin.fromMap(Map<String, dynamic> data) {
-    _title = data['title'];
-    _note = data['note'];
-    _position = LatLng(data['lat'], data['lng']);
-  }
+  @override
+  List<double> toJson(LatLng point) => [point.latitude, point.longitude];
 }

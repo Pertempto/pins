@@ -24,38 +24,39 @@ final userProvider = StreamProvider<User>(
   },
 );
 
-final collectionsProvider = StreamProvider<Map<String, Collection>>(
-  (ref) {
-    var docRef = FirebaseFirestore.instance.collection('collections');
-    return docRef.snapshots().map((snapshot) => Collection.fromSnapshot(snapshot));
-  },
-);
+getCollectionProvider(String collectionId) {
+  return StreamProvider<Collection?>((ref) {
+    var docRef =
+        FirebaseFirestore.instance.collection('collections').doc(collectionId);
+    return docRef.snapshots().map(Collection.fromDocument);
+  });
+}
 
-final userCollectionsProvider = Provider<List<Collection>>(
+final userCollectionsProvider = Provider<List<Collection>>((ref) {
+  final userStream = ref.watch(userProvider);
+  var user = userStream.value;
+  if (user != null) {
+    // TODO: actually get the collections.
+    return [];
+  } else {
+    return [];
+  }
+});
+
+final userCurrentCollectionProvider = Provider<Collection?>(
   (ref) {
     final userStream = ref.watch(userProvider);
     var user = userStream.value;
-
-    final collectionsStream = ref.watch(collectionsProvider);
-    var collections = collectionsStream.value;
-
-    if (user != null && collections != null) {
-      return user.collectionIds
-          .map((id) => collections[id])
-          .where((collection) => collection != null && collection.userIds.contains(user.userId))
-          .map((c) => c!)
-          .toList();
+    if (user != null && user.collectionIds.isNotEmpty) {
+      print('GETTING COLLECTION');
+      final StreamProvider provider =
+          getCollectionProvider(user.collectionIds[0]);
+      final result = ref.watch(provider);
+      print('RESULT: $result');
+      return result.value;
     } else {
-      return [];
+      print('USER: $user');
+      return null;
     }
   },
 );
-
-final userCurrentCollectionProvider = Provider<Collection?>((ref) {
-  final collections = ref.watch(userCollectionsProvider);
-  Collection? collection;
-  if (collections.isNotEmpty) {
-    collection = collections[0];
-  }
-  return collection;
-});
