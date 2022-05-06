@@ -15,12 +15,12 @@ class Pin with _$Pin {
   factory Pin.fromJson(Map<String, dynamic> json) => _$PinFromJson(json);
 }
 
-class LatLngConvertor implements JsonConverter<LatLng, List<double>> {
+class LatLngConvertor implements JsonConverter<LatLng, List<dynamic>> {
   const LatLngConvertor();
 
   @override
-  LatLng fromJson(List<double> coordinates) {
-    return LatLng(coordinates[0], coordinates[1]);
+  LatLng fromJson(List<dynamic> coordinates) {
+    return LatLng(coordinates[0] as double, coordinates[1] as double);
   }
 
   @override

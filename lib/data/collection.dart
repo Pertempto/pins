@@ -8,7 +8,7 @@ import 'pin.dart';
 
 part 'collection.g.dart';
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class Collection {
   late String collectionId;
   String name;
@@ -28,8 +28,7 @@ class Collection {
     this.blockedUserIds = const [],
   });
 
-  factory Collection.fromJson(Map<String, dynamic> json) =>
-      _$CollectionFromJson(json);
+  factory Collection.fromJson(Map<String, dynamic> json) => _$CollectionFromJson(json);
 
   Map<String, dynamic> toJson() => _$CollectionToJson(this);
 
@@ -44,9 +43,11 @@ class Collection {
   }
 
   factory Collection.fromDocument(DocumentSnapshot documentSnapshot) {
+    print('FROM DOC: ${documentSnapshot.hashCode} ${documentSnapshot.data()}');
     assert(documentSnapshot.exists);
     return Collection.fromJson(documentSnapshot.data() as Map<String, dynamic>);
   }
+
   // Check if the collection has a pin with the given title.
   bool hasPinTitle(String title) {
     return pins.map((p) => p.title == title).any((b) => b);
@@ -55,8 +56,7 @@ class Collection {
   // Create a new pin and add it to the collection.
   Pin createPin(LatLng position) {
     String title = '#${pinCounter + 1}';
-    String note =
-        '(${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)})';
+    String note = '(${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)})';
     Pin pin = Pin(title: title, note: note, position: position);
     pins.add(pin);
     pinCounter++;
@@ -72,16 +72,13 @@ class Collection {
   }
 
   saveData() {
-    FirebaseFirestore.instance
-        .collection('collections')
-        .doc(collectionId)
-        .set(toJson());
+    print("TO JSON:${toJson()}");
+    FirebaseFirestore.instance.collection('collections').doc(collectionId).set(toJson());
   }
 
   static String generateId() {
     String id = '';
-    String options =
-        '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    String options = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     Random rand = Random();
     for (int i = 0; i < 6; i++) {
       id += options[rand.nextInt(options.length)];

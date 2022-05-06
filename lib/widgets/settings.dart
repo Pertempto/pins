@@ -16,7 +16,8 @@ class _SettingsState extends ConsumerState<Settings> {
 
   @override
   Widget build(BuildContext context) {
-    final userCollections = ref.watch(userCollectionsProvider);
+    // final userCollections = ref.watch(userCollectionsProvider);
+    final userCollections = [];
     List<Widget> children = [
       Text('Collections', style: textTheme.headlineMedium),
       ...userCollections.map<Widget>((collection) => InkWell(
