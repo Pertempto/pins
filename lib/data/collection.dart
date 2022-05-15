@@ -36,7 +36,7 @@ class Collection {
       : pins = [],
         pinCounter = 0,
         ownerIds = [userId],
-        viewerIds = [],
+        viewerIds = [userId],
         blockedUserIds = [] {
     collectionId = generateId();
     saveData();

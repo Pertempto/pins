@@ -6,24 +6,24 @@ import 'collection.dart';
 class User {
   late String _userId;
   late String _name;
-  late List<String> _collectionIds;
+  late String? _currentCollectionId;
 
   String get userId => _userId;
 
   String get name => _name;
 
-  List<String> get collectionIds => _collectionIds;
+  String? get currentCollectionId => _currentCollectionId;
 
   Map<String, dynamic> get dataMap {
     return {
       'name': _name,
-      'collectionIds': _collectionIds,
+      'currentCollectionId': _currentCollectionId,
     };
   }
 
-  User.newUser(this._userId, this._name) : _collectionIds = [] {
+  User.newUser(this._userId, this._name) {
     Collection collection = Collection.newCollection('My Pins', _userId);
-    _collectionIds.add(collection.collectionId);
+    _currentCollectionId = collection.collectionId;
     saveData();
   }
 
@@ -33,10 +33,9 @@ class User {
     }
     assert(documentSnapshot.exists);
     _userId = documentSnapshot.id;
-    Map<String, dynamic> dataMap =
-        (documentSnapshot.data() as Map<String, dynamic>);
+    Map<String, dynamic> dataMap = (documentSnapshot.data() as Map<String, dynamic>);
     _name = dataMap['name'];
-    _collectionIds = List.from(dataMap['collectionIds']);
+    _currentCollectionId = dataMap['currentCollectionId'];
     if (kDebugMode) {
       print("done loading user");
     }
@@ -53,16 +52,9 @@ class User {
     return users;
   }
 
-  addCollection(String collectionId) {
-    _collectionIds.insert(0, collectionId);
-    saveData();
-  }
-
   selectCollection(String collectionId) {
-    if (_collectionIds.remove(collectionId)) {
-      _collectionIds.insert(0, collectionId);
-      saveData();
-    }
+    _currentCollectionId = collectionId;
+    saveData();
   }
 
   saveData() {

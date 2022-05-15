@@ -44,14 +44,27 @@ class HomePage extends HookConsumerWidget {
       [locationStream.data],
     );
     final user = ref.watch(userProvider);
-    final currentCollectionNotifier = ref.watch(userCollectionProvider);
+    final userCollectionsNotifier = ref.watch(userCollectionsProvider);
     final currentPinIndexNotifier = useState(-1);
     final showList = useState(false);
     final locationIcon = useFuture(useMemoized(() => _locationIconFuture), initialData: BitmapDescriptor.defaultMarker);
     final pinIcon = useFuture(useMemoized(() => _pinIconFuture), initialData: BitmapDescriptor.defaultMarker);
 
-    return currentCollectionNotifier.when(
-      data: (currentCollection) {
+    return userCollectionsNotifier.when(
+      data: (collections) {
+        bool isLoading = mapState.isLoading || collections == null;
+        Collection? currentCollection;
+        if (collections != null) {
+          for (Collection c in collections) {
+            if (c.collectionId == user.value!.currentCollectionId) {
+              currentCollection = c;
+            }
+          }
+          // If somehow the user's currentCollectionId is not found, just use the first collection.
+          if (currentCollection == null && collections.isNotEmpty) {
+            currentCollection = collections.first;
+          }
+        }
         TextTheme textTheme = Theme.of(context).textTheme;
         List<Widget> actions = [];
         Widget content;
@@ -65,7 +78,7 @@ class HomePage extends HookConsumerWidget {
                 ElevatedButton.icon(
                   onPressed: () {
                     Collection collection = Collection.newCollection('TEST!', user.value!.userId);
-                    user.value!.addCollection(collection.collectionId);
+                    user.value!.selectCollection(collection.collectionId);
                   },
                   label: const Text('Create Collection'),
                   icon: const Icon(MdiIcons.playlistPlus),
@@ -85,11 +98,17 @@ class HomePage extends HookConsumerWidget {
           }
 
           addPin(LatLng point) {
+            if (currentCollection == null) {
+              return;
+            }
             currentCollection.createPin(point);
             currentPinIndexNotifier.value = currentCollection.pins.length - 1;
           }
 
           deletePin() {
+            if (currentCollection == null) {
+              return;
+            }
             currentCollection.removePin(currentPinIndexNotifier.value);
             currentPinIndexNotifier.value = -1;
             mapController.goToMe();
@@ -156,8 +175,9 @@ class HomePage extends HookConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Padding(
+                          Container(
                             padding: const EdgeInsets.only(left: 16, top: 12),
+                            width: double.infinity,
                             child: Text('Pins', style: textTheme.headlineSmall),
                           ),
                           ...currentCollection.pins.mapIndexed(
@@ -179,7 +199,7 @@ class HomePage extends HookConsumerWidget {
                                 onTap: () {
                                   currentPinIndexNotifier.value = index;
                                   showList.value = false;
-                                  mapController.goTo(currentCollection.pins[index].position);
+                                  mapController.goTo(currentCollection!.pins[index].position);
                                 },
                               );
                             },
@@ -212,7 +232,7 @@ class HomePage extends HookConsumerWidget {
               title: Text(currentCollection == null ? 'Pins' : currentCollection.name),
               actions: actions,
             ),
-            body: mapState.isLoading ? const Center(child: CircularProgressIndicator()) : content,
+            body: isLoading ? const Center(child: CircularProgressIndicator()) : content,
             floatingActionButton: currentCollection == null
                 ? null
                 : FloatingActionButton(

@@ -25,60 +25,20 @@ final userProvider = StreamProvider<User?>(
   },
 );
 
-final userCollectionProvider = StreamProvider<Collection?>(
+final userCollectionsProvider = StreamProvider<Iterable<Collection>?>(
   (ref) {
     final userStream = ref.watch(authUserProvider);
-
     var user = userStream.value;
-
     if (user != null) {
       var docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
       var userStream = docRef.snapshots().map((doc) => User.fromDocument(doc));
       return userStream.switchMap((user) {
-        var collectionDocRef = FirebaseFirestore.instance.collection('collections').doc(user.collectionIds[0]);
-        return collectionDocRef.snapshots().map(Collection.fromDocument);
+        return FirebaseFirestore.instance
+            .collection('collections')
+            .where('viewerIds', arrayContains: user.userId)
+            .snapshots()
+            .map((snapshot) => snapshot.docs.map(Collection.fromDocument));
       });
-    } else {
-      return Stream.value(null);
-    }
-  },
-);
-//
-// class UserData {
-//   final Ref ref;
-//   UserData(this.ref);
-//
-//   Stream<Collection?> currentCollection()  {
-//     User? user = ref.watch(userProvider);
-//     if (user != null) {
-//       print('USER COLLECTIONS: ${user.collectionIds}');
-//       var docRef =
-//       FirebaseFirestore.instance.collection('collections').doc(user.collectionIds[0]);
-//       return docRef.snapshots().map(Collection.fromDocument);
-//     } else {
-//       print('USER IS NULL!!!!');
-//     }
-//     return null;
-//   }
-// }
-//
-// final userCollectionsProvider = Provider<List<Collection>>((ref) {
-//   final userStream = ref.watch(userProvider);
-//   var user = userStream.value;
-//   if (user != null) {
-//     // TODO: actually get the collections.
-//     return [];
-//   } else {
-//     return [];
-//   }
-// });
-//
-final userCurrentCollectionProvider = StreamProvider<Collection?>(
-  (ref) {
-    final user = ref.read(userProvider).value;
-    if (user != null && user.collectionIds.isNotEmpty) {
-      var docRef = FirebaseFirestore.instance.collection('collections').doc(user.collectionIds[0]);
-      return docRef.snapshots().map(Collection.fromDocument);
     } else {
       return const Stream.empty();
     }

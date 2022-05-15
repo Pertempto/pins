@@ -4,6 +4,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:pins/providers.dart';
 
+import '../data/collection.dart';
+
 class Settings extends ConsumerStatefulWidget {
   const Settings({Key? key}) : super(key: key);
 
@@ -16,29 +18,8 @@ class _SettingsState extends ConsumerState<Settings> {
 
   @override
   Widget build(BuildContext context) {
-    // final userCollections = ref.watch(userCollectionsProvider);
-    final userCollections = [];
-    List<Widget> children = [
-      Text('Collections', style: textTheme.headlineMedium),
-      ...userCollections.map<Widget>((collection) => InkWell(
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              child: Row(
-                children: [
-                  Text(collection.name, style: textTheme.titleLarge),
-                  const Spacer(),
-                  Text(collection.collectionId, style: textTheme.titleMedium),
-                  const Icon(MdiIcons.chevronRight),
-                ],
-              ),
-            ),
-            onTap: () {
-              ref.read(userProvider).value!.selectCollection(collection.collectionId);
-              Navigator.of(context).pop();
-            },
-          ))
-    ];
+    final user = ref.watch(userProvider);
+    final userCollectionsNotifier = ref.watch(userCollectionsProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Settings'), actions: [
         IconButton(
@@ -50,9 +31,46 @@ class _SettingsState extends ConsumerState<Settings> {
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: children,
+          child: userCollectionsNotifier.when(
+            data: (collections) {
+              if (collections == null) {
+                return const Center(child: Text('No Collections'));
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Collections', style: textTheme.headlineMedium),
+                  ...collections.map<Widget>((collection) => InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          child: Row(
+                            children: [
+                              Text(collection.name, style: textTheme.titleLarge),
+                              const Spacer(),
+                              Text(collection.collectionId, style: textTheme.titleMedium),
+                              const Icon(MdiIcons.chevronRight),
+                            ],
+                          ),
+                        ),
+                        onTap: () {
+                          ref.read(userProvider).value!.selectCollection(collection.collectionId);
+                          Navigator.of(context).pop();
+                        },
+                      )),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Collection collection = Collection.newCollection('TEST!', user.value!.userId);
+                      user.value!.selectCollection(collection.collectionId);
+                    },
+                    label: const Text('Create Collection'),
+                    icon: const Icon(MdiIcons.playlistPlus),
+                  ),
+                ],
+              );
+            },
+            error: (e, s) => const Text('Error'),
+            loading: () => const CircularProgressIndicator(),
           ),
         ),
       ),
