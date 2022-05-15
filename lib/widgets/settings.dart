@@ -7,6 +7,7 @@ import 'package:pins/widgets/collection_setup_page.dart';
 
 import '../data/collection.dart';
 import '../data/user.dart';
+import 'collection_share_page.dart';
 
 class Settings extends ConsumerStatefulWidget {
   const Settings({Key? key}) : super(key: key);
@@ -96,8 +97,10 @@ class _SettingsState extends ConsumerState<Settings> {
                 // TODO: implement sharing
                 ElevatedButton.icon(
                   onPressed: () {
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(const SnackBar(content: Text('This feature is coming soon!')));
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => CollectionSharePage(user: user, collection: collection)));
                   },
                   icon: const Icon(MdiIcons.shareVariant),
                   label: const Text('Share'),
