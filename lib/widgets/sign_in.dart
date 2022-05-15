@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../data/user.dart' as user;
@@ -229,17 +230,16 @@ class _SignInWidgetState extends State<SignInWidget> {
               _errorMessage = 'Passwords do not match!';
             });
           } else {
-            print('trying to create new user...');
             userId = await _signUp(_email, _password);
-            print('userId: $userId');
             user.User.newUser(userId, _username);
-            print('created user!!');
           }
         } else {
           userId = await _signIn(_email, _password);
         }
       } on FirebaseAuthException catch (e) {
-        print('error message: ${e.code}, ${e.message}');
+        if (kDebugMode) {
+          print('error message: ${e.code}, ${e.message}');
+        }
         setState(() {
           _isLoading = false;
           switch (e.code) {

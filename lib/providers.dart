@@ -7,11 +7,11 @@ import 'data/collection.dart';
 import 'data/user.dart';
 
 final authUserProvider = StreamProvider<auth.User?>(
-      (ref) => auth.FirebaseAuth.instance.authStateChanges(),
+  (ref) => auth.FirebaseAuth.instance.authStateChanges(),
 );
 
 final userProvider = StreamProvider<User?>(
-      (ref) {
+  (ref) {
     final userStream = ref.watch(authUserProvider);
 
     var user = userStream.value;
@@ -26,7 +26,7 @@ final userProvider = StreamProvider<User?>(
 );
 
 final userCollectionProvider = StreamProvider<Collection?>(
-      (ref) {
+  (ref) {
     final userStream = ref.watch(authUserProvider);
 
     var user = userStream.value;
@@ -34,7 +34,7 @@ final userCollectionProvider = StreamProvider<Collection?>(
     if (user != null) {
       var docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
       var userStream = docRef.snapshots().map((doc) => User.fromDocument(doc));
-      return userStream.switchMap((user)  {
+      return userStream.switchMap((user) {
         var collectionDocRef = FirebaseFirestore.instance.collection('collections').doc(user.collectionIds[0]);
         return collectionDocRef.snapshots().map(Collection.fromDocument);
       });
@@ -74,19 +74,13 @@ final userCollectionProvider = StreamProvider<Collection?>(
 // });
 //
 final userCurrentCollectionProvider = StreamProvider<Collection?>(
-      (ref) {
-    final user = ref
-        .read(userProvider)
-        .value;
-    print('USER: $user');
+  (ref) {
+    final user = ref.read(userProvider).value;
     if (user != null && user.collectionIds.isNotEmpty) {
-      print('GETTING COLLECTION');
-      var docRef =
-      FirebaseFirestore.instance.collection('collections').doc(user.collectionIds[0]);
+      var docRef = FirebaseFirestore.instance.collection('collections').doc(user.collectionIds[0]);
       return docRef.snapshots().map(Collection.fromDocument);
     } else {
-      print('USER: $user');
-      return Stream.empty();
+      return const Stream.empty();
     }
   },
 );

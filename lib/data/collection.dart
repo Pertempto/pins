@@ -43,7 +43,6 @@ class Collection {
   }
 
   factory Collection.fromDocument(DocumentSnapshot documentSnapshot) {
-    print('FROM DOC: ${documentSnapshot.hashCode} ${documentSnapshot.data()}');
     assert(documentSnapshot.exists);
     return Collection.fromJson(documentSnapshot.data() as Map<String, dynamic>);
   }
@@ -72,7 +71,6 @@ class Collection {
   }
 
   saveData() {
-    print("TO JSON:${toJson()}");
     FirebaseFirestore.instance.collection('collections').doc(collectionId).set(toJson());
   }
 

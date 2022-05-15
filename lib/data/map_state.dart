@@ -8,7 +8,7 @@ part 'map_state.freezed.dart';
 @freezed
 class MapState with _$MapState {
   const factory MapState(
-      {@Default(false) bool isBusy,
+      {@Default(false) bool isLoading,
       @Default(LatLng(0, 0)) LatLng currentLocation,
       @Default(LatLng(0, 0)) LatLng? targetLocation,
       @Default([]) List<Pin> pins,
