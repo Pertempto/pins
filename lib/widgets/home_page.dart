@@ -76,12 +76,9 @@ class HomePage extends HookConsumerWidget {
               children: [
                 Text('You have no collections.', style: textTheme.headlineSmall),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    Collection collection = Collection.newCollection('TEST!', user.value!.userId);
-                    user.value!.selectCollection(collection.collectionId);
-                  },
-                  label: const Text('Create Collection'),
-                  icon: const Icon(MdiIcons.playlistPlus),
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const Settings())),
+                  label: const Text('Setup'),
+                  icon: const Icon(MdiIcons.cog),
                 ),
               ],
             ),
@@ -221,12 +218,12 @@ class HomePage extends HookConsumerWidget {
                 )
             ],
           );
-          actions.add(IconButton(
-            icon: const Icon(MdiIcons.cog),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const Settings())),
-            tooltip: 'Settings',
-          ));
         }
+        actions.add(IconButton(
+          icon: const Icon(MdiIcons.cog),
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const Settings())),
+          tooltip: 'Settings',
+        ));
         return Scaffold(
             appBar: AppBar(
               title: Text(currentCollection == null ? 'Pins' : currentCollection.name),
@@ -294,11 +291,14 @@ class HomePage extends HookConsumerWidget {
       content = PinView(pin: pin, currentPosition: currentPosition);
       buttonBar = ButtonBar(alignment: MainAxisAlignment.start, children: [
         // TODO: make this work
-        // OutlinedButton.icon(
-        //   onPressed: () {},
-        //   icon: const Icon(MdiIcons.pencil),
-        //   label: const Text('Edit'),
-        // ),
+        OutlinedButton.icon(
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('This feature is coming soon!')));
+          },
+          icon: const Icon(MdiIcons.pencil),
+          label: const Text('Edit'),
+        ),
+        // TODO: use a confirmation dialog before deleting the pin
         OutlinedButton.icon(
           onPressed: onDeletePin,
           icon: const Icon(MdiIcons.delete),
