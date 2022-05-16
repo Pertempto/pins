@@ -1,10 +1,9 @@
-import 'dart:math';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'pin.dart';
+import 'utils.dart';
 
 part 'collection.g.dart';
 
@@ -38,7 +37,7 @@ class Collection {
         ownerIds = [userId],
         viewerIds = [userId],
         blockedUserIds = [] {
-    collectionId = generateId();
+    collectionId = generateId(length: 6);
     saveData();
   }
 
@@ -50,6 +49,44 @@ class Collection {
   // Check if the collection has a pin with the given title.
   bool hasPinTitle(String title) {
     return pins.map((p) => p.title == title).any((b) => b);
+  }
+
+  // Add a user as a viewer.
+  addViewer(String userId) {
+    if (viewerIds.contains(userId)) {
+      return;
+    }
+    viewerIds.add(userId);
+    saveData();
+  }
+
+  // Add a user as an owner. They must already be a viewer.
+  giveEditAccess(String userId) {
+    if (!viewerIds.contains(userId)) {
+      return;
+    }
+    ownerIds.add(userId);
+    saveData();
+  }
+
+  // Demote an owner to viewer.
+  removeEditAccess(String userId) {
+    if (!ownerIds.contains(userId)) {
+      return;
+    }
+    ownerIds.remove(userId);
+    saveData();
+  }
+
+  // Remove a user.
+  removeUser(String userId) {
+    if (!viewerIds.contains(userId)) {
+      return;
+    }
+    // If they are a owner, remove them from that too.
+    ownerIds.remove(userId);
+    viewerIds.remove(userId);
+    saveData();
   }
 
   // Create a new pin and add it to the collection.
@@ -72,15 +109,5 @@ class Collection {
 
   saveData() {
     FirebaseFirestore.instance.collection('collections').doc(collectionId).set(toJson());
-  }
-
-  static String generateId() {
-    String id = '';
-    String options = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-    Random rand = Random();
-    for (int i = 0; i < 6; i++) {
-      id += options[rand.nextInt(options.length)];
-    }
-    return id;
   }
 }

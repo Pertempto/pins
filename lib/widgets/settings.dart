@@ -6,6 +6,7 @@ import 'package:pins/providers.dart';
 import 'package:pins/widgets/collection_setup_page.dart';
 
 import '../data/collection.dart';
+import '../data/collection_request.dart';
 import '../data/user.dart';
 import 'collection_share_page.dart';
 
@@ -23,6 +24,7 @@ class _SettingsState extends ConsumerState<Settings> {
   Widget build(BuildContext context) {
     final user = ref.watch(userProvider);
     final userCollectionsNotifier = ref.watch(userCollectionsProvider);
+    final userRequestsNotifier = ref.watch(userCollectionRequestsProvider(user.value?.userId ?? ''));
     return Scaffold(
       appBar: AppBar(title: const Text('Settings'), actions: [
         IconButton(
@@ -39,16 +41,22 @@ class _SettingsState extends ConsumerState<Settings> {
               if (collections == null) {
                 return const Center(child: Text('No Collections'));
               }
+              Iterable<CollectionRequest> requests = [];
+              if (userRequestsNotifier.value != null) {
+                requests = userRequestsNotifier.value!;
+              }
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Collections', style: textTheme.headlineMedium),
+                  Text('Collections', style: textTheme.headlineSmall),
                   ...collections.map<Widget>((collection) => _collectionView(
                         collection: collection,
                         user: user.value!,
                         selected: collection.collectionId == user.value!.currentCollectionId,
                         canEdit: collection.ownerIds.contains(user.value!.userId),
                       )),
+                  const SizedBox(height: 36),
+                  if (requests.isNotEmpty) _joinRequests(collectionRequests: requests),
                 ],
               );
             },
@@ -68,50 +76,91 @@ class _SettingsState extends ConsumerState<Settings> {
   _collectionView({required Collection collection, required User user, bool selected = false, bool canEdit = false}) {
     return InkWell(
       borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.all(8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
         child: Column(
           children: [
             Row(
               children: [
-                Text(collection.name, style: textTheme.titleLarge),
-                const Spacer(),
-                Text(collection.collectionId, style: textTheme.titleMedium),
-                const SizedBox(width: 4),
-                Icon(selected ? MdiIcons.mapMarkerMultiple : MdiIcons.chevronRight),
+                Expanded(
+                  child: Text(collection.name, style: textTheme.titleLarge, overflow: TextOverflow.ellipsis),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    const SizedBox(width: 8),
+                    Text(collection.collectionId, style: textTheme.titleMedium),
+                    const SizedBox(width: 4),
+                    Icon(selected ? MdiIcons.mapMarkerMultiple : MdiIcons.chevronRight),
+                  ],
+                ),
               ],
             ),
             if (selected)
-              ButtonBar(alignment: MainAxisAlignment.start, children: [
-                if (canEdit)
-                  OutlinedButton.icon(
+              ButtonBar(
+                alignment: MainAxisAlignment.start,
+                children: [
+                  if (canEdit)
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        var route = MaterialPageRoute(
+                          builder: (context) => CollectionSetupPage(user: user, editCollection: collection),
+                        );
+                        Navigator.push(context, route);
+                      },
+                      icon: const Icon(MdiIcons.pencil),
+                      label: const Text('Edit'),
+                    ),
+                  ElevatedButton.icon(
                     onPressed: () {
-                      var route = MaterialPageRoute(
-                        builder: (context) => CollectionSetupPage(user: user, editCollection: collection),
-                      );
-                      Navigator.push(context, route);
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => CollectionSharePage(
+                                    user: user,
+                                    collectionId: collection.collectionId,
+                                  )));
                     },
-                    icon: const Icon(MdiIcons.pencil),
-                    label: const Text('Edit'),
+                    icon: const Icon(MdiIcons.shareVariant),
+                    label: const Text('Share'),
                   ),
-                // TODO: implement sharing
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => CollectionSharePage(user: user, collection: collection)));
-                  },
-                  icon: const Icon(MdiIcons.shareVariant),
-                  label: const Text('Share'),
-                ),
-              ])
+                ],
+              )
           ],
         ),
       ),
       onTap: () {
         ref.read(userProvider).value!.selectCollection(collection.collectionId);
       },
+    );
+  }
+
+  Widget _joinRequests({required Iterable<CollectionRequest> collectionRequests}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Join Requests', style: textTheme.headlineSmall),
+        const SizedBox(height: 4),
+        ...collectionRequests.map((request) => _requestItem(collectionId: request.collectionId)),
+      ],
+    );
+  }
+
+  _requestItem({required String collectionId}) {
+    TextTheme textTheme = Theme.of(context).textTheme;
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Text(collectionId, style: textTheme.titleLarge),
+            const Spacer(),
+            const Icon(MdiIcons.playlistPlus),
+          ],
+        ),
+      ),
+      onTap: () {},
     );
   }
 
@@ -134,7 +183,7 @@ class _SettingsState extends ConsumerState<Settings> {
             SimpleDialogOption(
               onPressed: () {
                 Navigator.pop(context);
-                _joinCollectionDialog();
+                _joinCollectionDialog(user: user);
               },
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
               child: Text('Join Collection', style: textTheme.labelLarge),
@@ -145,7 +194,7 @@ class _SettingsState extends ConsumerState<Settings> {
     );
   }
 
-  _joinCollectionDialog() {
+  _joinCollectionDialog({required User user}) {
     TextEditingController textFieldController = TextEditingController();
     showDialog(
         context: context,
@@ -173,9 +222,8 @@ class _SettingsState extends ConsumerState<Settings> {
                     return;
                   }
                   Navigator.pop(context);
-                  // TODO: do something with the code.
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text('Code: "$code". This feature is coming soon!')));
+                  CollectionRequest.newRequest(code, user.userId);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Join request added!')));
                 },
               ),
             ],
