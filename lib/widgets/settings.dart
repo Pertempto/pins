@@ -53,7 +53,7 @@ class _SettingsState extends ConsumerState<Settings> {
                         collection: collection,
                         user: user.value!,
                         selected: collection.collectionId == user.value!.currentCollectionId,
-                        canEdit: collection.ownerIds.contains(user.value!.userId),
+                        canEdit: collection.isModerator(user.value!.userId),
                       )),
                   const SizedBox(height: 36),
                   if (requests.isNotEmpty) _joinRequests(collectionRequests: requests),

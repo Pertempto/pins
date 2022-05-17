@@ -160,7 +160,7 @@ class HomePage extends HookConsumerWidget {
                       },
                 onMapCreated: mapController.setGoogleMapController,
                 onTap: (_) => currentPinIndexNotifier.value = -1,
-                onLongPress: addPin,
+                onLongPress: currentCollection.isMember(user.value!.userId) ? addPin : null,
               ),
               if (showList.value)
                 Container(
@@ -213,6 +213,7 @@ class HomePage extends HookConsumerWidget {
                   selectedPinIndex: currentPinIndexNotifier.value,
                   selectedCollection: currentCollection,
                   currentPosition: mapState.currentLocation,
+                  canEdit: currentCollection.isMember(user.value!.userId),
                   onAddPin: addPin,
                   onDeletePin: deletePin,
                 )
@@ -256,6 +257,7 @@ class HomePage extends HookConsumerWidget {
     required int selectedPinIndex,
     required Collection selectedCollection,
     required LatLng currentPosition,
+    bool canEdit = false,
     Function(LatLng)? onAddPin,
     Function()? onDeletePin,
   }) {
@@ -276,7 +278,7 @@ class HomePage extends HookConsumerWidget {
               const Spacer(),
             ],
           ),
-          Text('Press and hold the map to add a pin anywhere.', style: textTheme.subtitle1!),
+          if (canEdit) Text('Press and hold the map to add a pin anywhere.', style: textTheme.subtitle1!),
         ],
       );
       buttonBar = ButtonBar(alignment: MainAxisAlignment.start, children: [
@@ -311,11 +313,14 @@ class HomePage extends HookConsumerWidget {
         child: Card(
             margin: const EdgeInsets.all(16),
             child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                padding: EdgeInsets.fromLTRB(16, 16, 16, canEdit ? 8 : 16),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [content, buttonBar],
+                  children: [
+                    content,
+                    if (canEdit) buttonBar,
+                  ],
                 ))));
   }
 }

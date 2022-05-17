@@ -91,7 +91,7 @@ class CollectionSharePage extends HookConsumerWidget {
             collection: collection,
             users: users,
             collectionRequests: collectionRequests,
-            canAdd: collection.ownerIds.contains(user.userId),
+            canAdd: collection.isModerator(user.userId),
           ),
       ],
     );
@@ -115,7 +115,7 @@ class CollectionSharePage extends HookConsumerWidget {
           context: context,
           userId: userId,
           name: users[userId]?.name ?? userId,
-          iconData: collection.ownerIds.contains(userId) ? MdiIcons.accountCowboyHat : MdiIcons.account,
+          iconData: collection.isModerator(userId) ? MdiIcons.accountCowboyHat : MdiIcons.account,
           onTap: onTap,
         );
       }),
@@ -181,14 +181,14 @@ class CollectionSharePage extends HookConsumerWidget {
 
   _userDialog({required BuildContext context, required Collection collection, required User user}) {
     TextTheme textTheme = Theme.of(context).textTheme;
-    bool isOwner = collection.ownerIds.contains(user.userId);
+    bool isModerator = collection.isModerator(user.userId);
     showDialog(
       context: context,
       builder: (context) {
         return SimpleDialog(
           title: Text(user.name),
           children: [
-            if (isOwner)
+            if (isModerator)
               SimpleDialogOption(
                 onPressed: () {
                   Navigator.pop(context);

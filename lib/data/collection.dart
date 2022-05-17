@@ -7,25 +7,30 @@ import 'utils.dart';
 
 part 'collection.g.dart';
 
+const String owner = 'owner';
+const String moderator = 'moderator';
+const String member = 'member';
+const String viewer = 'viewer';
+
 @JsonSerializable(explicitToJson: true)
 class Collection {
   late String collectionId;
   String name;
   List<Pin> pins;
   int pinCounter;
+  Map<String, String> _userRoles;
   List<String> ownerIds;
   List<String> viewerIds;
-  List<String> blockedUserIds;
 
   Collection({
     required this.collectionId,
     required this.name,
     this.pins = const [],
     this.pinCounter = 0,
+    Map<String, String> userRoles = const {},
     required this.ownerIds,
     this.viewerIds = const [],
-    this.blockedUserIds = const [],
-  });
+  }) : _userRoles = userRoles;
 
   factory Collection.fromJson(Map<String, dynamic> json) => _$CollectionFromJson(json);
 
@@ -34,9 +39,9 @@ class Collection {
   Collection.newCollection(this.name, String userId)
       : pins = [],
         pinCounter = 0,
+        _userRoles = {userId: owner},
         ownerIds = [userId],
-        viewerIds = [userId],
-        blockedUserIds = [] {
+        viewerIds = [userId] {
     collectionId = generateId(length: 6);
     saveData();
   }
@@ -46,9 +51,33 @@ class Collection {
     return Collection.fromJson(documentSnapshot.data() as Map<String, dynamic>);
   }
 
-  // Check if the collection has a pin with the given title.
-  bool hasPinTitle(String title) {
-    return pins.map((p) => p.title == title).any((b) => b);
+  // Check if a user has at least the owner role (delete the collection).
+  bool isOwner(String userId) {
+    return ownerIds.contains(userId);
+    return [owner].contains(getRole(userId));
+  }
+
+  // Check if a user has at least the moderator role (change the name, control user access).
+  bool isModerator(String userId) {
+    return ownerIds.contains(userId);
+    return [owner, moderator].contains(getRole(userId));
+  }
+
+  // Check if a user has at least the member role (add pins).
+  bool isMember(String userId) {
+    return ownerIds.contains(userId);
+    return [owner, moderator, member].contains(getRole(userId));
+  }
+
+  // Check if a user has at least the viewer role (add pins).
+  bool isViewer(String userId) {
+    return viewerIds.contains(userId);
+    return [owner, moderator, member, viewer].contains(getRole(userId));
+  }
+
+  // Get the user's role.
+  String getRole(String userId) {
+    return _userRoles[userId] ?? '';
   }
 
   // Add a user as a viewer.
@@ -87,6 +116,11 @@ class Collection {
     ownerIds.remove(userId);
     viewerIds.remove(userId);
     saveData();
+  }
+
+  // Check if the collection has a pin with the given title.
+  bool hasPinTitle(String title) {
+    return pins.map((p) => p.title == title).any((b) => b);
   }
 
   // Create a new pin and add it to the collection.
