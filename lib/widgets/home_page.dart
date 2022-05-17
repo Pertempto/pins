@@ -262,6 +262,7 @@ class HomePage extends HookConsumerWidget {
     Function()? onDeletePin,
   }) {
     TextTheme textTheme = Theme.of(context).textTheme;
+    ColorScheme colorScheme = Theme.of(context).colorScheme;
     Widget content;
     Widget buttonBar;
     if (selectedPinIndex == -1) {
@@ -311,6 +312,7 @@ class HomePage extends HookConsumerWidget {
     return SizedBox(
         width: double.infinity,
         child: Card(
+            color: colorScheme.onPrimary,
             margin: const EdgeInsets.all(16),
             child: Padding(
                 padding: EdgeInsets.fromLTRB(16, 16, 16, canEdit ? 8 : 16),

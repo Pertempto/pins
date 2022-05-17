@@ -117,7 +117,7 @@ class _SettingsState extends ConsumerState<Settings> {
                           context,
                           MaterialPageRoute(
                               builder: (context) => CollectionSharePage(
-                                    user: user,
+                                    currentUser: user,
                                     collectionId: collection.collectionId,
                                   )));
                     },

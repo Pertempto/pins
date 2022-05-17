@@ -36,7 +36,7 @@ final userCollectionsProvider = StreamProvider<Iterable<Collection>?>(
       return userStream.switchMap((user) {
         return FirebaseFirestore.instance
             .collection('collections')
-            .where('viewerIds', arrayContains: user.userId)
+            .where('userRoles.' + user.userId, whereIn: [owner, moderator, member, viewer])
             .snapshots()
             .map((snapshot) => snapshot.docs.map(Collection.fromDocument));
       });
@@ -65,22 +65,20 @@ final allUsersProvider = StreamProvider<Map<String, User>>(
   },
 );
 
-final collectionRequestsProvider = StreamProvider.autoDispose.family<Iterable<CollectionRequest>, String>(
-    (ref, collectionId) {
-      return FirebaseFirestore.instance
-          .collection('collectionRequests')
-          .where('collectionId', isEqualTo: collectionId)
-          .snapshots()
-          .map((snapshot) => snapshot.docs.map(CollectionRequest.fromDocument));
-    }
-);
+final collectionRequestsProvider =
+    StreamProvider.autoDispose.family<Iterable<CollectionRequest>, String>((ref, collectionId) {
+  return FirebaseFirestore.instance
+      .collection('collectionRequests')
+      .where('collectionId', isEqualTo: collectionId)
+      .snapshots()
+      .map((snapshot) => snapshot.docs.map(CollectionRequest.fromDocument));
+});
 
-final userCollectionRequestsProvider = StreamProvider.autoDispose.family<Iterable<CollectionRequest>, String>(
-        (ref, userId) {
-      return FirebaseFirestore.instance
-          .collection('collectionRequests')
-          .where('userId', isEqualTo: userId)
-          .snapshots()
-          .map((snapshot) => snapshot.docs.map(CollectionRequest.fromDocument));
-    }
-);
+final userCollectionRequestsProvider =
+    StreamProvider.autoDispose.family<Iterable<CollectionRequest>, String>((ref, userId) {
+  return FirebaseFirestore.instance
+      .collection('collectionRequests')
+      .where('userId', isEqualTo: userId)
+      .snapshots()
+      .map((snapshot) => snapshot.docs.map(CollectionRequest.fromDocument));
+});

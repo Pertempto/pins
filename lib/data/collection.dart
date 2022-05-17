@@ -11,6 +11,7 @@ const String owner = 'owner';
 const String moderator = 'moderator';
 const String member = 'member';
 const String viewer = 'viewer';
+const List<String> allRoles = [owner, moderator, member, viewer];
 
 @JsonSerializable(explicitToJson: true)
 class Collection {
@@ -18,19 +19,17 @@ class Collection {
   String name;
   List<Pin> pins;
   int pinCounter;
-  Map<String, String> _userRoles;
-  List<String> ownerIds;
-  List<String> viewerIds;
+  Map<String, String> userRoles;
+
+  List<String> get userIds => List.from(userRoles.keys);
 
   Collection({
     required this.collectionId,
     required this.name,
     this.pins = const [],
     this.pinCounter = 0,
-    Map<String, String> userRoles = const {},
-    required this.ownerIds,
-    this.viewerIds = const [],
-  }) : _userRoles = userRoles;
+    required this.userRoles,
+  });
 
   factory Collection.fromJson(Map<String, dynamic> json) => _$CollectionFromJson(json);
 
@@ -39,9 +38,7 @@ class Collection {
   Collection.newCollection(this.name, String userId)
       : pins = [],
         pinCounter = 0,
-        _userRoles = {userId: owner},
-        ownerIds = [userId],
-        viewerIds = [userId] {
+        userRoles = {userId: owner} {
     collectionId = generateId(length: 6);
     saveData();
   }
@@ -53,68 +50,53 @@ class Collection {
 
   // Check if a user has at least the owner role (delete the collection).
   bool isOwner(String userId) {
-    return ownerIds.contains(userId);
     return [owner].contains(getRole(userId));
   }
 
   // Check if a user has at least the moderator role (change the name, control user access).
   bool isModerator(String userId) {
-    return ownerIds.contains(userId);
     return [owner, moderator].contains(getRole(userId));
   }
 
   // Check if a user has at least the member role (add pins).
   bool isMember(String userId) {
-    return ownerIds.contains(userId);
     return [owner, moderator, member].contains(getRole(userId));
   }
 
   // Check if a user has at least the viewer role (add pins).
   bool isViewer(String userId) {
-    return viewerIds.contains(userId);
     return [owner, moderator, member, viewer].contains(getRole(userId));
   }
 
   // Get the user's role.
   String getRole(String userId) {
-    return _userRoles[userId] ?? '';
+    return userRoles[userId] ?? '';
   }
 
   // Add a user as a viewer.
   addViewer(String userId) {
-    if (viewerIds.contains(userId)) {
+    if (isViewer(userId)) {
       return;
     }
-    viewerIds.add(userId);
+    userRoles[userId] = viewer;
     saveData();
   }
 
-  // Add a user as an owner. They must already be a viewer.
-  giveEditAccess(String userId) {
-    if (!viewerIds.contains(userId)) {
+  // Set the user's role.
+  setRole(String userId, String role) {
+    if (!isViewer(userId) || !allRoles.contains(role)) {
       return;
     }
-    ownerIds.add(userId);
-    saveData();
-  }
-
-  // Demote an owner to viewer.
-  removeEditAccess(String userId) {
-    if (!ownerIds.contains(userId)) {
-      return;
-    }
-    ownerIds.remove(userId);
+    userRoles[userId] = role;
     saveData();
   }
 
   // Remove a user.
   removeUser(String userId) {
-    if (!viewerIds.contains(userId)) {
+    if (!isViewer(userId)) {
       return;
     }
-    // If they are a owner, remove them from that too.
-    ownerIds.remove(userId);
-    viewerIds.remove(userId);
+    userRoles.remove(userId);
     saveData();
   }
 

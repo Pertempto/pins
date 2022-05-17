@@ -9,10 +9,10 @@ import '../data/user.dart';
 import '../providers.dart';
 
 class CollectionSharePage extends HookConsumerWidget {
-  final User user;
+  final User currentUser;
   final String collectionId;
 
-  const CollectionSharePage({Key? key, required this.user, required this.collectionId}) : super(key: key);
+  const CollectionSharePage({Key? key, required this.currentUser, required this.collectionId}) : super(key: key);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -91,7 +91,7 @@ class CollectionSharePage extends HookConsumerWidget {
             collection: collection,
             users: users,
             collectionRequests: collectionRequests,
-            canAdd: collection.isModerator(user.userId),
+            canAdd: collection.isModerator(currentUser.userId),
           ),
       ],
     );
@@ -106,16 +106,24 @@ class CollectionSharePage extends HookConsumerWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Users', style: textTheme.headlineSmall),
       const SizedBox(height: 4),
-      ...collection.viewerIds.where((userId) => users[userId] != null).map((userId) {
+      ...collection.userIds.where((userId) => users[userId] != null).map((userId) {
         VoidCallback? onTap;
-        if (userId != user.userId) {
+        if (userId != currentUser.userId) {
           onTap = () => _userDialog(context: context, collection: collection, user: users[userId]!);
+        }
+        IconData iconData = MdiIcons.eye;
+        if (collection.isOwner(userId)) {
+          iconData = MdiIcons.accountTieHat;
+        } else if (collection.isModerator(userId)) {
+          iconData = MdiIcons.accountCowboyHat;
+        } else if (collection.isMember(userId)) {
+          iconData = MdiIcons.account;
         }
         return _userItem(
           context: context,
           userId: userId,
           name: users[userId]?.name ?? userId,
-          iconData: collection.isModerator(userId) ? MdiIcons.accountCowboyHat : MdiIcons.account,
+          iconData: iconData,
           onTap: onTap,
         );
       }),
@@ -136,7 +144,7 @@ class CollectionSharePage extends HookConsumerWidget {
         Text('Join Requests', style: textTheme.headlineSmall),
         const SizedBox(height: 4),
         ...collectionRequests
-            .where((request) => users[request.userId] != null && !collection.viewerIds.contains(request.userId))
+            .where((request) => users[request.userId] != null && !collection.isViewer(request.userId))
             .map((request) => _userItem(
                   context: context,
                   userId: request.userId,
@@ -181,30 +189,32 @@ class CollectionSharePage extends HookConsumerWidget {
 
   _userDialog({required BuildContext context, required Collection collection, required User user}) {
     TextTheme textTheme = Theme.of(context).textTheme;
-    bool isModerator = collection.isModerator(user.userId);
+    bool canChangeRoles = collection.isModerator(currentUser.userId);
+    String role = collection.getRole(user.userId);
     showDialog(
       context: context,
       builder: (context) {
         return SimpleDialog(
           title: Text(user.name),
           children: [
-            if (isModerator)
+            // TODO: improve the promote & demote UI. make it more obvious what is going on. move logic to Collection class
+            if (canChangeRoles && [moderator, member, viewer].contains(role))
               SimpleDialogOption(
                 onPressed: () {
                   Navigator.pop(context);
-                  collection.removeEditAccess(user.userId);
+                  collection.setRole(user.userId, allRoles[allRoles.indexOf(role) - 1]);
                 },
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                child: Text('Remove Edit Access', style: textTheme.labelLarge),
-              )
-            else
+                child: Text('Promote', style: textTheme.labelLarge),
+              ),
+            if (canChangeRoles && [owner, moderator, member].contains(role))
               SimpleDialogOption(
                 onPressed: () {
                   Navigator.pop(context);
-                  collection.giveEditAccess(user.userId);
+                  collection.setRole(user.userId, allRoles[allRoles.indexOf(role) + 1]);
                 },
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                child: Text('Give Edit Access', style: textTheme.labelLarge),
+                child: Text('Demote', style: textTheme.labelLarge),
               ),
             SimpleDialogOption(
               onPressed: () {
