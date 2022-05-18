@@ -11,6 +11,7 @@ import '../data/collection.dart';
 import '../data/map_controller.dart';
 import '../data/pin.dart';
 import '../providers.dart';
+import 'custom_app_bar.dart';
 import 'pin_view.dart';
 import 'settings.dart';
 
@@ -66,22 +67,23 @@ class HomePage extends HookConsumerWidget {
           }
         }
         TextTheme textTheme = Theme.of(context).textTheme;
+        ColorScheme colorScheme = Theme.of(context).colorScheme;
         List<Widget> actions = [];
-        Widget content;
+        Widget background =
+            Container(width: double.infinity, height: double.infinity, color: colorScheme.surfaceVariant);
+        Widget content = Container();
+        Widget appBarBottom = Container();
         if (currentCollection == null) {
-          content = Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('You have no collections.', style: textTheme.headlineSmall),
-                ElevatedButton.icon(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const Settings())),
-                  label: const Text('Setup'),
-                  icon: const Icon(MdiIcons.cog),
-                ),
-              ],
-            ),
+          content = Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text('You have no collections.', style: textTheme.headlineSmall),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const Settings())),
+                label: const Text('Setup'),
+                icon: const Icon(MdiIcons.cog),
+              ),
+            ],
           );
         } else {
           if (currentPinIndexNotifier.value >= currentCollection.pins.length) {
@@ -133,92 +135,83 @@ class HomePage extends HookConsumerWidget {
             onPressed: () => showList.value = !showList.value,
             tooltip: showList.value ? 'Map View' : 'List View',
           ));
-          content = Stack(
-            children: [
-              GoogleMap(
-                mapType: MapType.hybrid,
-                mapToolbarEnabled: false,
-                myLocationButtonEnabled: false,
-                myLocationEnabled: false,
-                zoomControlsEnabled: false,
-                initialCameraPosition: CameraPosition(target: mapState.currentLocation, zoom: 15),
-                markers: markers,
-                polylines: currentPinIndexNotifier.value == -1
-                    ? {}
-                    : {
-                        Polyline(
-                          polylineId: const PolylineId('CURRENT PIN LINE'),
-                          points: [
-                            currentCollection.pins[currentPinIndexNotifier.value].position,
-                            mapState.currentLocation,
-                          ],
-                          visible: true,
-                          color: Colors.blue,
-                          width: 5,
-                          patterns: [PatternItem.dot, PatternItem.gap(20)],
-                        ),
-                      },
-                onMapCreated: mapController.setGoogleMapController,
-                onTap: (_) => currentPinIndexNotifier.value = -1,
-                onLongPress: currentCollection.isMember(user.value!.userId) ? addPin : null,
-              ),
-              if (showList.value)
-                Container(
-                  margin: const EdgeInsets.all(16),
-                  child: Material(
-                    borderRadius: const BorderRadius.all(Radius.circular(12)),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.only(left: 16, top: 12),
-                            width: double.infinity,
-                            child: Text('Pins', style: textTheme.headlineSmall),
-                          ),
-                          ...currentCollection.pins.mapIndexed(
-                            (index, pin) {
-                              return InkWell(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  child: Row(
-                                    children: [
-                                      PinView(
-                                        pin: pin,
-                                        currentPosition: mapState.currentLocation,
-                                      ),
-                                      const Spacer(),
-                                      if (index == currentPinIndexNotifier.value) const Icon(MdiIcons.mapMarker),
-                                    ],
-                                  ),
-                                ),
-                                onTap: () {
-                                  currentPinIndexNotifier.value = index;
-                                  showList.value = false;
-                                  mapController.goTo(currentCollection!.pins[index].position);
-                                },
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                      ),
+          background = GoogleMap(
+            mapType: MapType.hybrid,
+            mapToolbarEnabled: false,
+            myLocationButtonEnabled: false,
+            myLocationEnabled: false,
+            zoomControlsEnabled: false,
+            initialCameraPosition: CameraPosition(target: mapState.currentLocation, zoom: 15),
+            markers: markers,
+            polylines: currentPinIndexNotifier.value == -1
+                ? {}
+                : {
+                    Polyline(
+                      polylineId: const PolylineId('CURRENT PIN LINE'),
+                      points: [
+                        currentCollection.pins[currentPinIndexNotifier.value].position,
+                        mapState.currentLocation,
+                      ],
+                      visible: true,
+                      color: Colors.blue,
+                      width: 5,
+                      patterns: [PatternItem.dot, PatternItem.gap(20)],
                     ),
-                  ),
-                )
-              else
-                _pinView(
-                  context: context,
-                  selectedPinIndex: currentPinIndexNotifier.value,
-                  selectedCollection: currentCollection,
-                  currentPosition: mapState.currentLocation,
-                  canEdit: currentCollection.isMember(user.value!.userId),
-                  onAddPin: addPin,
-                  onDeletePin: deletePin,
-                )
-            ],
+                  },
+            onMapCreated: mapController.setGoogleMapController,
+            onTap: (_) => currentPinIndexNotifier.value = -1,
+            onLongPress: currentCollection.isMember(user.value!.userId) ? addPin : null,
           );
+          if (showList.value) {
+            appBarBottom = SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.only(left: 16, top: 12),
+                    width: double.infinity,
+                    child: Text('Pins', style: textTheme.headlineSmall),
+                  ),
+                  ...currentCollection.pins.mapIndexed(
+                    (index, pin) {
+                      return InkWell(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Row(
+                            children: [
+                              PinView(
+                                pin: pin,
+                                currentPosition: mapState.currentLocation,
+                              ),
+                              const Spacer(),
+                              if (index == currentPinIndexNotifier.value) const Icon(MdiIcons.mapMarker),
+                            ],
+                          ),
+                        ),
+                        onTap: () {
+                          currentPinIndexNotifier.value = index;
+                          showList.value = false;
+                          mapController.goTo(currentCollection!.pins[index].position);
+                        },
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            );
+          } else {
+            appBarBottom = _pinView(
+              context: context,
+              selectedPinIndex: currentPinIndexNotifier.value,
+              selectedCollection: currentCollection,
+              currentPosition: mapState.currentLocation,
+              canEdit: currentCollection.isMember(user.value!.userId),
+              onAddPin: addPin,
+              onDeletePin: deletePin,
+            );
+          }
         }
         actions.add(IconButton(
           icon: const Icon(MdiIcons.cog),
@@ -226,11 +219,26 @@ class HomePage extends HookConsumerWidget {
           tooltip: 'Settings',
         ));
         return Scaffold(
-            appBar: AppBar(
-              title: Text(currentCollection == null ? 'Pins' : currentCollection.name),
-              actions: actions,
-            ),
-            body: isLoading ? const Center(child: CircularProgressIndicator()) : content,
+
+            body: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : Stack(
+                children: [
+                  background,
+                  SafeArea(
+                    child: Column(
+                      children: [
+                        CustomAppBar(
+                          title: currentCollection?.name ?? 'Pins',
+                          actions: actions,
+                          bottom: appBarBottom,
+                        ),
+                        Container(margin: const EdgeInsets.fromLTRB(16, 0, 16, 16), child: content),
+                      ],
+                    ),
+                  ),
+                ],
+                  ),
             floatingActionButton: currentCollection == null
                 ? null
                 : FloatingActionButton(
@@ -311,18 +319,15 @@ class HomePage extends HookConsumerWidget {
     }
     return SizedBox(
         width: double.infinity,
-        child: Card(
-            color: colorScheme.onPrimary,
-            margin: const EdgeInsets.all(16),
-            child: Padding(
-                padding: EdgeInsets.fromLTRB(16, 16, 16, canEdit ? 8 : 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    content,
-                    if (canEdit) buttonBar,
-                  ],
-                ))));
+        child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, canEdit ? 8 : 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                content,
+                if (canEdit) buttonBar,
+              ],
+            )));
   }
 }
