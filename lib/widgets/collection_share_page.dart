@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:pins/widgets/options_dialog.dart';
 
 import '../data/collection.dart';
 import '../data/collection_request.dart';
@@ -103,12 +104,13 @@ class CollectionSharePage extends HookConsumerWidget {
     required Map<String, User> users,
   }) {
     TextTheme textTheme = Theme.of(context).textTheme;
+    bool canChangeRoles = collection.isModerator(currentUser.userId);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('Users', style: textTheme.headlineSmall),
       const SizedBox(height: 4),
       ...collection.userIds.where((userId) => users[userId] != null).map((userId) {
         VoidCallback? onTap;
-        if (userId != currentUser.userId) {
+        if (userId != currentUser.userId && canChangeRoles) {
           onTap = () => _userDialog(context: context, collection: collection, user: users[userId]!);
         }
         IconData iconData = MdiIcons.eye;
@@ -188,43 +190,29 @@ class CollectionSharePage extends HookConsumerWidget {
   }
 
   _userDialog({required BuildContext context, required Collection collection, required User user}) {
-    TextTheme textTheme = Theme.of(context).textTheme;
     bool canChangeRoles = collection.isModerator(currentUser.userId);
     String role = collection.getRole(user.userId);
     showDialog(
       context: context,
       builder: (context) {
-        return SimpleDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(user.name),
-          children: [
-            // TODO: improve the promote & demote UI. make it more obvious what is going on. move logic to Collection class
+        return OptionsDialog(
+          title: user.name,
+          options: [
             if (canChangeRoles && [moderator, member, viewer].contains(role))
-              SimpleDialogOption(
-                onPressed: () {
-                  Navigator.pop(context);
-                  collection.setRole(user.userId, allRoles[allRoles.indexOf(role) - 1]);
-                },
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                child: Text('Promote', style: textTheme.labelLarge),
+              DialogOption(
+                label: 'Promote',
+                onPressed: () => collection.setRole(user.userId, allRoles[allRoles.indexOf(role) - 1]),
               ),
             if (canChangeRoles && [owner, moderator, member].contains(role))
-              SimpleDialogOption(
-                onPressed: () {
-                  Navigator.pop(context);
-                  collection.setRole(user.userId, allRoles[allRoles.indexOf(role) + 1]);
-                },
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                child: Text('Demote', style: textTheme.labelLarge),
+              DialogOption(
+                label: 'Demote',
+                onPressed: () => collection.setRole(user.userId, allRoles[allRoles.indexOf(role) + 1]),
               ),
-            SimpleDialogOption(
-              onPressed: () {
-                Navigator.pop(context);
-                collection.removeUser(user.userId);
-              },
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-              child: Text('Remove', style: textTheme.labelLarge),
-            ),
+            if (canChangeRoles)
+              DialogOption(
+                label: 'Remove',
+                onPressed: () => collection.removeUser(user.userId),
+              ),
           ],
         );
       },
@@ -236,30 +224,22 @@ class CollectionSharePage extends HookConsumerWidget {
       required Collection collection,
       required CollectionRequest request,
       required User newUser}) {
-    TextTheme textTheme = Theme.of(context).textTheme;
     showDialog(
       context: context,
       builder: (context) {
-        return SimpleDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('Join Request From ${newUser.name}'),
-          children: [
-            SimpleDialogOption(
-              onPressed: () {
-                Navigator.pop(context);
-                request.delete();
-              },
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-              child: Text('Block', style: textTheme.labelLarge),
+        return OptionsDialog(
+          title: 'Join Request From ${newUser.name}',
+          options: [
+            DialogOption(
+              label: 'Block',
+              onPressed: () => request.delete(),
             ),
-            SimpleDialogOption(
+            DialogOption(
+              label: 'Add',
               onPressed: () {
-                Navigator.pop(context);
                 collection.addViewer(newUser.userId);
                 request.delete();
               },
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-              child: Text('Add', style: textTheme.labelLarge),
             ),
           ],
         );

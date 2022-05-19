@@ -9,6 +9,7 @@ import '../data/collection.dart';
 import '../data/collection_request.dart';
 import '../data/user.dart';
 import 'collection_share_page.dart';
+import 'options_dialog.dart';
 
 class Settings extends ConsumerStatefulWidget {
   const Settings({Key? key}) : super(key: key);
@@ -28,7 +29,7 @@ class _SettingsState extends ConsumerState<Settings> {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings'), actions: [
         IconButton(
-          onPressed: () => auth.FirebaseAuth.instance.signOut().then((value) => Navigator.of(context).pop()),
+          onPressed: _signOutDialog,
           icon: const Icon(MdiIcons.exitRun),
           tooltip: 'Sign Out',
         ),
@@ -230,5 +231,26 @@ class _SettingsState extends ConsumerState<Settings> {
             ],
           );
         });
+  }
+
+  _signOutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return OptionsDialog(
+          title: 'Sign Out?',
+          options: [
+            DialogOption(
+              label: 'Yes',
+              onPressed: () => auth.FirebaseAuth.instance.signOut().then((value) => Navigator.of(context).pop()),
+            ),
+            DialogOption(
+              label: 'No',
+              onPressed: () {},
+            ),
+          ],
+        );
+      },
+    );
   }
 }
