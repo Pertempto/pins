@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:pins/widgets/options_dialog.dart';
+import 'package:pins/widgets/custom_dialog.dart';
 
 import '../data/collection.dart';
 import '../data/collection_request.dart';
@@ -127,6 +127,7 @@ class CollectionSharePage extends HookConsumerWidget {
           name: users[userId]?.name ?? userId,
           iconData: iconData,
           onTap: onTap,
+          onIconTap: () => _showRoleInfo(context: context, role: collection.getRole(userId)),
         );
       }),
     ]);
@@ -171,17 +172,18 @@ class CollectionSharePage extends HookConsumerWidget {
     required String name,
     required IconData iconData,
     VoidCallback? onTap,
+    VoidCallback? onIconTap,
   }) {
     TextTheme textTheme = Theme.of(context).textTheme;
     return InkWell(
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         child: Row(
           children: [
             Text(name, style: textTheme.titleLarge),
             const Spacer(),
-            Icon(iconData),
+            IconButton(icon: Icon(iconData), onPressed: onIconTap),
           ],
         ),
       ),
@@ -195,7 +197,7 @@ class CollectionSharePage extends HookConsumerWidget {
     showDialog(
       context: context,
       builder: (context) {
-        return OptionsDialog(
+        return CustomDialog(
           title: user.name,
           options: [
             if (canChangeRoles && [moderator, member, viewer].contains(role))
@@ -227,7 +229,7 @@ class CollectionSharePage extends HookConsumerWidget {
     showDialog(
       context: context,
       builder: (context) {
-        return OptionsDialog(
+        return CustomDialog(
           title: 'Join Request From ${newUser.name}',
           options: [
             DialogOption(
@@ -240,6 +242,27 @@ class CollectionSharePage extends HookConsumerWidget {
                 collection.addViewer(newUser.userId);
                 request.delete();
               },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  _showRoleInfo({required BuildContext context, required String role}) {
+    if (!allRoles.contains(role)) {
+      return;
+    }
+    showDialog(
+      context: context,
+      builder: (context) {
+        return CustomDialog(
+          title: roleTitles[role]!,
+          message: roleDescriptions[role]!,
+          options: [
+            DialogOption(
+              label: 'Ok',
+              onPressed: () {},
             ),
           ],
         );

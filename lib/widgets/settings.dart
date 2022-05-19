@@ -9,7 +9,7 @@ import '../data/collection.dart';
 import '../data/collection_request.dart';
 import '../data/user.dart';
 import 'collection_share_page.dart';
-import 'options_dialog.dart';
+import 'custom_dialog.dart';
 
 class Settings extends ConsumerStatefulWidget {
   const Settings({Key? key}) : super(key: key);
@@ -170,25 +170,22 @@ class _SettingsState extends ConsumerState<Settings> {
     showDialog(
       context: context,
       builder: (context) {
-        return SimpleDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Add Collection'),
-          children: [
-            SimpleDialogOption(
+        return CustomDialog(
+          title: 'Add Collection',
+          options: [
+            DialogOption(
+              label: 'Create Collection',
               onPressed: () {
                 Navigator.pop(context);
                 Navigator.push(context, MaterialPageRoute(builder: (context) => CollectionSetupPage(user: user)));
               },
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-              child: Text('Create Collection', style: textTheme.labelLarge),
             ),
-            SimpleDialogOption(
+            DialogOption(
+              label: 'Join Collection',
               onPressed: () {
                 Navigator.pop(context);
                 _joinCollectionDialog(user: user);
               },
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-              child: Text('Join Collection', style: textTheme.labelLarge),
             ),
           ],
         );
@@ -237,7 +234,7 @@ class _SettingsState extends ConsumerState<Settings> {
     showDialog(
       context: context,
       builder: (context) {
-        return OptionsDialog(
+        return CustomDialog(
           title: 'Sign Out?',
           options: [
             DialogOption(

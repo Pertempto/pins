@@ -12,6 +12,20 @@ const String moderator = 'moderator';
 const String member = 'member';
 const String viewer = 'viewer';
 const List<String> allRoles = [owner, moderator, member, viewer];
+const Map<String, String> roleTitles = {
+  owner: 'Owner',
+  moderator: 'Moderator',
+  member: 'Member',
+  viewer: 'Viewer',
+};
+
+const Map<String, String> roleDescriptions = {
+  owner: 'An owner has full control of a collection, including the ability to delete it.',
+  moderator:
+      'A moderator can edit the properties of a collection. They can also set the user roles of other users in the collection.',
+  member: 'A member can add, edit, and view pins.',
+  viewer: 'A viewer can only view pins. They have no edit access.',
+};
 
 @JsonSerializable(explicitToJson: true)
 class Collection {
