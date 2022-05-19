@@ -170,6 +170,7 @@ class _SettingsState extends ConsumerState<Settings> {
       context: context,
       builder: (context) {
         return SimpleDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Text('Add Collection'),
           children: [
             SimpleDialogOption(

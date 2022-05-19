@@ -1,6 +1,10 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -15,16 +19,22 @@ import 'custom_app_bar.dart';
 import 'pin_view.dart';
 import 'settings.dart';
 
+// From https://stackoverflow.com/a/56534916, so that marker icons appear correctly on iOS.
+Future<Uint8List> getBytesFromAsset(String path, int width) async {
+  ByteData data = await rootBundle.load(path);
+  ui.Codec codec = await ui.instantiateImageCodec(data.buffer.asUint8List(), targetWidth: width);
+  ui.FrameInfo fi = await codec.getNextFrame();
+  return (await fi.image.toByteData(format: ui.ImageByteFormat.png))!.buffer.asUint8List();
+}
+
 class HomePage extends HookConsumerWidget {
   HomePage({Key? key}) : super(key: key);
 
   final _locationStreamFuture = currentPositionStream();
 
-  final _locationIconFuture =
-      BitmapDescriptor.fromAssetImage(const ImageConfiguration(size: Size(72, 72)), 'assets/icon/location.png');
+  final _locationIconFuture = getBytesFromAsset('assets/icon/location.png', 108);
 
-  final _pinIconFuture =
-      BitmapDescriptor.fromAssetImage(const ImageConfiguration(size: Size(40, 72)), 'assets/icon/pin.png');
+  final _pinIconFuture = getBytesFromAsset('assets/icon/pin.png', 60);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -48,8 +58,13 @@ class HomePage extends HookConsumerWidget {
     final userCollectionsNotifier = ref.watch(userCollectionsProvider);
     final currentPinIndexNotifier = useState(-1);
     final showList = useState(false);
-    final locationIcon = useFuture(useMemoized(() => _locationIconFuture), initialData: BitmapDescriptor.defaultMarker);
-    final pinIcon = useFuture(useMemoized(() => _pinIconFuture), initialData: BitmapDescriptor.defaultMarker);
+    final locationIcon = useFuture(useMemoized(() {
+      return _locationIconFuture;
+    }));
+    final pinIcon = useFuture(useMemoized(() {
+      print('PLATFORM IS IOS ${defaultTargetPlatform == TargetPlatform.iOS}');
+      return _pinIconFuture;
+    }));
 
     return userCollectionsNotifier.when(
       data: (collections) {
@@ -115,17 +130,22 @@ class HomePage extends HookConsumerWidget {
 
           Set<Marker> markers = currentCollection.pins
               .mapIndexed((i, p) => Marker(
-                  position: p.position,
-                  markerId: MarkerId(i.toString()),
-                  anchor: const Offset(0, 1),
-                  onTap: () => currentPinIndexNotifier.value = i,
-                  zIndex: i.toDouble(),
-                  icon: pinIcon.requireData))
+                    position: p.position,
+                    markerId: MarkerId(i.toString()),
+                    anchor: const Offset(0, 1),
+                    onTap: () => currentPinIndexNotifier.value = i,
+                    zIndex: i.toDouble(),
+                    icon: pinIcon.data == null
+                        ? BitmapDescriptor.defaultMarker
+                        : BitmapDescriptor.fromBytes(pinIcon.data!),
+                  ))
               .toSet();
           markers.add(Marker(
               position: mapState.currentLocation,
               markerId: const MarkerId('position'),
-              icon: locationIcon.requireData,
+              icon: locationIcon.data == null
+                  ? BitmapDescriptor.defaultMarker
+                  : BitmapDescriptor.fromBytes(locationIcon.data!),
               anchor: const Offset(0.5, 0.5),
               onTap: () => currentPinIndexNotifier.value = -1,
               zIndex: markers.length.toDouble()));
@@ -163,42 +183,40 @@ class HomePage extends HookConsumerWidget {
             onLongPress: currentCollection.isMember(user.value!.userId) ? addPin : null,
           );
           if (showList.value) {
-            appBarBottom = SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.only(left: 16, top: 12),
-                    width: double.infinity,
-                    child: Text('Pins', style: textTheme.headlineSmall),
-                  ),
-                  ...currentCollection.pins.mapIndexed(
-                    (index, pin) {
-                      return InkWell(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          child: Row(
-                            children: [
-                              PinView(
-                                pin: pin,
-                                currentPosition: mapState.currentLocation,
-                              ),
-                              const Spacer(),
-                              if (index == currentPinIndexNotifier.value) const Icon(MdiIcons.mapMarker),
-                            ],
+            appBarBottom = Container(
+              height: 300,
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: currentCollection.pins.mapIndexed(
+                      (index, pin) {
+                        return InkWell(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Row(
+                              children: [
+                                PinView(
+                                  pin: pin,
+                                  currentPosition: mapState.currentLocation,
+                                ),
+                                const Spacer(),
+                                if (index == currentPinIndexNotifier.value) const Icon(MdiIcons.mapMarker),
+                              ],
+                            ),
                           ),
-                        ),
-                        onTap: () {
-                          currentPinIndexNotifier.value = index;
-                          showList.value = false;
-                          mapController.goTo(currentCollection!.pins[index].position);
-                        },
-                      );
-                    },
+                          onTap: () {
+                            currentPinIndexNotifier.value = index;
+                            showList.value = false;
+                            mapController.goTo(currentCollection!.pins[index].position);
+                          },
+                        );
+                      },
+                    ).toList(),
                   ),
-                  const SizedBox(height: 12),
-                ],
+                ),
               ),
             );
           } else {
@@ -219,25 +237,24 @@ class HomePage extends HookConsumerWidget {
           tooltip: 'Settings',
         ));
         return Scaffold(
-
             body: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : Stack(
-                children: [
-                  background,
-                  SafeArea(
-                    child: Column(
-                      children: [
-                        CustomAppBar(
-                          title: currentCollection?.name ?? 'Pins',
-                          actions: actions,
-                          bottom: appBarBottom,
+                    children: [
+                      background,
+                      SafeArea(
+                        child: Column(
+                          children: [
+                            CustomAppBar(
+                              title: currentCollection?.name ?? 'Pins',
+                              actions: actions,
+                              bottom: appBarBottom,
+                            ),
+                            Container(margin: const EdgeInsets.fromLTRB(16, 0, 16, 16), child: content),
+                          ],
                         ),
-                        Container(margin: const EdgeInsets.fromLTRB(16, 0, 16, 16), child: content),
-                      ],
-                    ),
-                  ),
-                ],
+                      ),
+                    ],
                   ),
             floatingActionButton: currentCollection == null
                 ? null

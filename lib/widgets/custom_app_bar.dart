@@ -27,6 +27,7 @@ class CustomAppBar extends StatelessWidget {
         child: SizedBox(
           width: double.infinity,
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 // margin: EdgeInsets.all(8),

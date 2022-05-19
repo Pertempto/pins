@@ -195,6 +195,7 @@ class CollectionSharePage extends HookConsumerWidget {
       context: context,
       builder: (context) {
         return SimpleDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(user.name),
           children: [
             // TODO: improve the promote & demote UI. make it more obvious what is going on. move logic to Collection class
@@ -240,6 +241,7 @@ class CollectionSharePage extends HookConsumerWidget {
       context: context,
       builder: (context) {
         return SimpleDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text('Join Request From ${newUser.name}'),
           children: [
             SimpleDialogOption(
