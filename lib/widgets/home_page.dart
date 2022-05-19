@@ -85,7 +85,7 @@ class HomePage extends HookConsumerWidget {
         ColorScheme colorScheme = Theme.of(context).colorScheme;
         List<Widget> actions = [];
         Widget background =
-            Container(width: double.infinity, height: double.infinity, color: colorScheme.surfaceVariant);
+            Container(width: double.infinity, height: double.infinity, color: colorScheme.background);
         Widget content = Container();
         Widget appBarBottom = Container();
         if (currentCollection == null) {
@@ -239,11 +239,11 @@ class HomePage extends HookConsumerWidget {
         return Scaffold(
             body: isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : Stack(
-                    children: [
-                      background,
-                      SafeArea(
-                        child: Column(
+                : SafeArea(
+                  child: Stack(
+                      children: [
+                        background,
+                        Column(
                           children: [
                             CustomAppBar(
                               title: currentCollection?.name ?? 'Pins',
@@ -253,9 +253,9 @@ class HomePage extends HookConsumerWidget {
                             Container(margin: const EdgeInsets.fromLTRB(16, 0, 16, 16), child: content),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                ),
             floatingActionButton: currentCollection == null
                 ? null
                 : FloatingActionButton(
